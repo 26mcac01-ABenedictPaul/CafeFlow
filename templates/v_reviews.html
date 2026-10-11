@@ -1,0 +1,6 @@
+{% extends "vbase.html" %}{% block vbody %}<h1 style="margin-top:0">Customer reviews</h1>
+<div class="kpis"><div class="kpi"><small>Average rating</small><b>{{avg or '-'}} ★</b><span class="mut">{{total}} reviews</span></div>
+<div class="card" style="margin:0;grid-column:span 2"><b>Rating split</b>{% for c in dist %}{% set star = 5 - loop.index0 %}<div class="row" style="gap:8px;margin:4px 0"><span style="width:34px">{{star}} ★</span><div class="bar2" style="flex:1;margin:0"><i style="width:{{(c*100/total) if total else 0}}%"></i></div><span class="mut" style="width:30px;text-align:right">{{c}}</span></div>{% endfor %}</div></div>
+{% set wall = wall %}{% include "_revwall.html" %}
+{% for r in rs %}<div class="card" style="margin:8px 0"><div class="row"><b style="color:#e6a100">{{'★'*r.rating}}<span style="color:#d6d9e6">{{'★'*(5-r.rating)}}</span></b><b>{{r.cname}}</b><span class="mut">order #{{r.oid}} &middot; {{r.time}}</span></div>
+<p style="margin:6px 0 0">{{r.text or '(no comment)'}} {% for t in r.tags %}<span class="tag" style="background:#e8f8ef;color:#0d7a4f">{{t}}</span> {% endfor %}</p></div>{% else %}<div class="card mut">No reviews yet. They appear here the moment a customer sends one.</div>{% endfor %}{% endblock %}

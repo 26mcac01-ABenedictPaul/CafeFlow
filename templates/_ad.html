@@ -1,0 +1,4 @@
+{% set o = a.o %}<div class="ad {{o.type}}"><small>{{o.title}} &middot; {{a.counter}}, Floor {{o.floor}}</small>
+{% if a.save %}<span class="save">Save Rs {{a.save}}</span>{% endif %}<h3>{{a.head}}</h3><p>{{a.sub}}</p>
+<div class="pics">{% for i in a['items'][:4] %}<span title="{{i.name}}" {% if i.pic %}style="background-image:url('{{i.pic}}')"{% endif %}>{% if not i.pic %}{{i.emoji}}{% endif %}</span>{% endfor %}</div>
+<form method="post" action="/add_offer/{{o.id}}"><input type="hidden" name="back" value="{{back or '/home'}}"><button class="btn sm">{{'Add combo to cart' if o.type=='combo' else ('Order now' if o.type!='popular' else 'Add favourites')}}</button> <a class="btn sm" style="background:rgba(255,255,255,.25);color:inherit" href="/counter/{{a.key}}">See menu</a></form></div>

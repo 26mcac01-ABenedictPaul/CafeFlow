@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Graph implementation</h2><ul>
+<li>The canteen is a <b>graph</b>: each place is a node and each walkway is an edge. It is stored as an <b>adjacency list</b>: every place keeps the list of places next to it. The matrix further down shows the same graph as an <b>adjacency matrix</b>.</li>
+<li><b>BFS</b> uses our own <b>Queue</b>. It visits everything 1 step away, then 2 steps away, and so on, so the first time it reaches your goal is the <b>shortest</b> route.</li>
+<li><b>DFS</b> uses our own <b>Stack</b>. It dives down one path as far as it can, then backs up. It finds <b>a</b> route, not always the shortest.</li>
+<li>Press Play: orange places are visited, dashed blue places are waiting in the queue or stack, and the green route is the final path with a walker following it.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.mn rect{fill:#fff;stroke:#1b1f3b;stroke-width:2;transition:fill .25s,stroke .25s}.mn .nm{font-size:12.5px;font-weight:700;fill:#1b1f3b}.mn .ic{font-size:21px}
+.mn.vis rect{fill:#ffe3d3;stroke:#ff6b35}.mn.fr rect{fill:#eaf0ff;stroke:#3b6cf0;stroke-dasharray:5 4}.mn.cur rect{fill:#ffb703;stroke:#ff6b35;animation:ring .7s infinite}
+.mn.path rect{fill:#7be0b8;stroke:#0d7a62;stroke-dasharray:none}@keyframes ring{50%{stroke-width:5}}
+.mn .tagp{font-size:9.5px;font-weight:800;fill:#fff}.mn .tagb{rx:8}
+.ed{stroke:#cfd3e6;stroke-width:3;transition:stroke .3s}.ed.ex{stroke:#ff6b35;stroke-width:4.5}
+.ed.route{stroke:#12a37f;stroke-width:6;stroke-dasharray:10 8;animation:flow .7s linear infinite}@keyframes flow{to{stroke-dashoffset:-18}}
+.mapwrap{background:radial-gradient(circle at 1px 1px,#dde1f0 1px,transparent 0) 0 0/22px 22px,#fff;overflow:auto}
+.two{display:grid;grid-template-columns:2fr 1fr;gap:16px}@media(max-width:900px){.two{grid-template-columns:1fr}}
+.chipbox{display:flex;flex-wrap:wrap;gap:6px;min-height:38px;margin-top:8px}.chipbox span{background:#eaf0ff;border:1px solid #c7d5fb;border-radius:99px;padding:3px 12px;font-size:.85rem;font-weight:600;animation:rise2 .3s}
+.chipbox.o span{background:#fff1e9;border-color:#ffd2bd}@keyframes rise2{from{opacity:0;transform:translateY(8px)}}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px}.vs .card{margin:0}.vs b.big{font-size:1.5rem}
+</style>
+<div class="pagehead"><h1>Canteen map</h1><p class="mut">Pick where you are and where you want to go, then watch BFS and DFS explore the canteen.</p></div>
+<div class="card"><form method="get" class="row"><label>From</label><select name="start" style="width:auto;margin:0">{% for p in places %}<option {{"selected" if p==start}}>{{p}}</option>{% endfor %}</select>
+<label>To</label><select name="goal" style="width:auto;margin:0">{% for p in places %}<option {{"selected" if p==goal}}>{{p}}</option>{% endfor %}</select><button class="btn sun">Set route</button></form>
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<div class="row"><div class="chips" style="margin:0"><button id="mBfs" class="on">BFS (Queue)</button><button id="mDfs">DFS (Stack)</button></div>
+<button class="btn" id="play">&#9654; Play</button><button class="btn ghost sm" id="stepb">Step</button><button class="btn ghost sm" id="reset">Reset</button>
+<label class="mut" style="margin-left:auto">Speed <input type="range" id="speed" min="1" max="10" value="5" style="width:130px;margin:0 0 0 6px;vertical-align:middle"></label></div></div>
+<div class="two"><div class="card mapwrap" style="padding:0;margin:0"><svg id="map" viewBox="0 0 720 380" width="100%" style="min-width:600px;display:block" role="img" aria-label="Canteen map graph">
+{% for a,b in data.edges %}<line class="ed" data-a="{{a}}" data-b="{{b}}" x1="{{data.pos[a][0]}}" y1="{{data.pos[a][1]}}" x2="{{data.pos[b][0]}}" y2="{{data.pos[b][1]}}"/>{% endfor %}
+{% for p in places %}<g class="mn" data-n="{{p}}" transform="translate({{data.pos[p][0]}},{{data.pos[p][1]}})"><rect x="-64" y="-24" width="128" height="48" rx="14"/><text class="ic" x="-46" y="7" text-anchor="middle">{{data.icons[p]}}</text><text class="nm" x="-28" y="5">{{p}}</text>
+{% if p==start %}<rect x="-64" y="-35" width="46" height="16" rx="8" style="fill:#1b1f3b;stroke:none"/><text class="tagp" x="-41" y="-23.5" text-anchor="middle">START</text>{% endif %}{% if p==goal %}<rect x="18" y="-35" width="46" height="16" rx="8" style="fill:#12a37f;stroke:none"/><text class="tagp" x="41" y="-23.5" text-anchor="middle">GOAL</text>{% endif %}</g>{% endfor %}</svg></div>
+<div class="card" style="margin:0"><b id="ftitle">Queue (front to back)</b><div class="chipbox" id="fr"></div><div style="height:12px"></div><b>Visit order</b><div class="chipbox o" id="ord"></div><p id="msg" class="mut" style="margin-bottom:0"></p></div></div>
+<h2 class="sec">BFS or DFS? <small>same map, same start and goal</small></h2>
+<div class="vs"><div class="card"><b>BFS &middot; Queue</b><p class="mut">{% if bpath %}Route found: {{bpath|join(" > ")}}{% else %}No route{% endif %}</p><b class="big">{{ (bpath|length - 1) if bpath else 0 }} step(s)</b><span class="mut"> &middot; visited {{bn}} place(s)</span><p class="mut" style="margin-bottom:0">Always the shortest route.</p></div>
+<div class="card"><b>DFS &middot; Stack</b><p class="mut">{% if dpath %}Route found: {{dpath|join(" > ")}}{% else %}No route{% endif %}</p><b class="big">{{ (dpath|length - 1) if dpath else 0 }} step(s)</b><span class="mut"> &middot; visited {{dn}} place(s)</span><p class="mut" style="margin-bottom:0">Finds a route, not always the shortest.</p></div></div>
+<h2 class="sec">How the graph is stored</h2>
+<div class="two"><div class="card" style="margin:0"><b>Adjacency list</b><table>{% for p in places %}<tr><td><b>{{p}}</b></td><td>{{adj[p]|join(", ")}}</td></tr>{% endfor %}</table></div>
+<div class="card" style="margin:0;overflow-x:auto"><b>Adjacency matrix</b><table><tr><th></th>{% for p in places %}<th>{{loop.index0}}</th>{% endfor %}</tr>{% for row in matrix %}<tr><th>{{loop.index0}}</th>{% for v in row %}<td>{{v}}</td>{% endfor %}</tr>{% endfor %}</table>
+<p class="mut" style="margin-bottom:0">{% for p in places %}{{loop.index0}} = {{p}}{{", " if not loop.last}}{% endfor %}</p></div></div>
+<script>
+const M = {{ data|tojson }}, NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('map');
+const node = {}, edge = {}; document.querySelectorAll('.mn').forEach(g => node[g.dataset.n] = g); document.querySelectorAll('.ed').forEach(l => { edge[l.dataset.a + '|' + l.dataset.b] = l; edge[l.dataset.b + '|' + l.dataset.a] = l; });
+const speed = document.getElementById('speed'), fr = document.getElementById('fr'), ord = document.getElementById('ord'), msg = document.getElementById('msg'), ftitle = document.getElementById('ftitle');
+let mode = 'bfs', k = 0, timer = null, done = false, walker = null; const visited = new Set();
+const chip = (box, t) => { const s = document.createElement('span'); s.textContent = t; box.appendChild(s); };
+function reset(){ clearInterval(timer); timer = null; k = 0; done = false; visited.clear(); Object.values(node).forEach(n => n.classList.remove('vis','cur','fr','path')); document.querySelectorAll('.ed').forEach(e => e.classList.remove('ex','route')); if (walker) { walker.remove(); walker = null; } fr.innerHTML = ''; ord.innerHTML = ''; msg.textContent = ''; ftitle.textContent = mode === 'bfs' ? 'Queue (front to back)' : 'Stack (top first)'; }
+function finish(){
+  if (done) return; done = true; clearInterval(timer); timer = null; const p = M[mode].path;
+  if (!p) { msg.textContent = 'No route found.'; return; }
+  if (p.length === 1) { msg.textContent = 'You are already there.'; node[p[0]].classList.add('path'); return; }
+  Object.values(node).forEach(n => n.classList.remove('fr','cur')); p.forEach(n => node[n].classList.add('path')); let d = '';
+  p.forEach((n, i) => { const [x, y] = M.pos[n]; d += (i ? 'L' : 'M') + x + ',' + y; if (i) edge[p[i-1] + '|' + n].classList.add('route'); });
+  walker = document.createElementNS(NS, 'g'); walker.innerHTML = '<circle r="13" fill="#12a37f" stroke="#fff" stroke-width="3"></circle><text y="6" font-size="16" text-anchor="middle">🚶</text><animateMotion dur="' + (p.length * 0.9) + 's" repeatCount="indefinite" path="' + d + '"></animateMotion>';
+  svg.appendChild(walker); msg.textContent = (mode === 'bfs' ? 'Shortest route: ' : 'A route: ') + (p.length - 1) + ' step(s).';
+}
+function step(){
+  const S = M[mode].steps; if (k >= S.length) { finish(); return false; }
+  const s = S[k++]; Object.values(node).forEach(n => n.classList.remove('cur','fr'));
+  visited.add(s.node); visited.forEach(v => node[v].classList.add('vis')); node[s.node].classList.add('cur');
+  if (s.from) edge[s.from + '|' + s.node].classList.add('ex');
+  fr.innerHTML = ''; s.frontier.forEach(f => { node[f].classList.add('fr'); chip(fr, f); }); chip(ord, k + '. ' + s.node);
+  if (k >= S.length) setTimeout(finish, 450); return true;
+}
+const delay = () => 1000 - speed.value * 90;
+function play(){ if (done) reset(); clearInterval(timer); timer = setInterval(step, delay()); }
+function setMode(m){ mode = m; document.getElementById('mBfs').classList.toggle('on', m === 'bfs'); document.getElementById('mDfs').classList.toggle('on', m === 'dfs'); reset(); }
+document.getElementById('mBfs').onclick = () => { setMode('bfs'); play(); }; document.getElementById('mDfs').onclick = () => { setMode('dfs'); play(); };
+document.getElementById('play').onclick = play; document.getElementById('stepb').onclick = () => { clearInterval(timer); timer = null; if (done) reset(); step(); }; document.getElementById('reset').onclick = reset;
+speed.oninput = () => { if (timer) play(); }; setMode('bfs'); setTimeout(play, 700);
+</script>
+{% endblock %}

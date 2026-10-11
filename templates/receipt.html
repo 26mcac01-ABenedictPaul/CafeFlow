@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CafeFlow bill #{{o.id}}</title>
+<link rel="stylesheet" href="/static/css/receipt.css"></head>
+<body class="billpage">
+<div class="rbtns">{% if can_pdf %}<a href="{{pdf_url|default('/bill/' ~ o.id)}}">Download PDF</a>{% endif %}<button type="button" onclick="window.print()">Print</button><a class="alt" href="javascript:history.back()">Back</a></div>
+{% include "_receipt.html" %}
+</body></html>

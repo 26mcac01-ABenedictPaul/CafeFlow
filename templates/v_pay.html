@@ -1,0 +1,10 @@
+{% extends "vbase.html" %}{% block vbody %}
+<div class="row" style="justify-content:space-between"><h1 style="margin:0">Payment history</h1><a class="btn sm dark" href="/vendor/payments?csv=1&method={{method}}&status={{status|urlencode}}">Download CSV</a></div>
+<div class="kpis" style="margin:14px 0"><div class="kpi"><small>Online (UPI) received</small><b>Rs {{summary.online}}</b></div><div class="kpi"><small>Cash collected</small><b>Rs {{summary.cash}}</b></div>
+<div class="kpi"><small>Cash still to collect</small><b>Rs {{summary.due}}</b></div><div class="kpi"><small>Refunds initiated</small><b>Rs {{summary.refund}}</b></div></div>
+<form method="get" class="card row"><select name="method" style="width:auto;margin:0" onchange="this.form.submit()"><option value="">All methods</option>{% for m,l in PAY_LABELS.items() %}<option value="{{m}}" {{'selected' if m==method}}>{{l}}</option>{% endfor %}</select>
+<select name="status" style="width:auto;margin:0" onchange="this.form.submit()"><option value="">All payment statuses</option>{% for s in statuses %}<option {{'selected' if s==status}}>{{s}}</option>{% endfor %}</select><span class="mut">{{rows|length}} payment(s)</span></form>
+<div class="card" style="overflow-x:auto"><table><tr><th>Order</th><th>Date</th><th>Customer</th><th>Method</th><th>Transaction</th><th>Amount</th><th>Payment</th><th>Order</th></tr>
+{% for o in rows %}<tr><td><a href="/bill/{{o.id}}/view" target="_blank">#{{o.id}}</a></td><td>{{o.time}}</td><td>{{o.cname}}</td><td>{{o.pay}}</td><td class="mut">{{o.txn or '-'}}</td><td><b>Rs {{o.total}}</b></td>
+<td><span class="tag {{'Accepted' if o.pay_status in ('Paid','Cash collected') else ('Rejected' if o.pay_status=='Refund initiated' else 'Pending')}}">{{o.pay_status or 'Paid'}}</span></td><td><span class="tag {{o.status}}">{{o.status}}</span></td></tr>
+{% else %}<tr><td colspan="8" class="mut">No payments yet.</td></tr>{% endfor %}</table></div>{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block body %}<script>window.CF_NOBIG=true</script>
+<div class="card" style="text-align:center;max-width:680px;margin:20px auto">
+{% if o.method=='cod' %}<div class="okcirc" style="background:var(--sun)"><span style="font-size:2.4rem">🧾</span></div><h1>Order placed!</h1><p class="mut">Pay Rs {{o.total}} in cash when you collect your order.</p>
+{% else %}<div class="okcirc"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h1>Payment successful</h1><p class="mut">Rs {{o.total}} paid with {{o.pay}} &middot; Txn {{o.txn}}</p>{% endif %}
+<p>Order <b>#{{o.id}}</b> sent to <b>{{cn}}</b>, Floor {{o.floor}}. Your bill has been emailed to you.</p>
+<div class="steps" id="steps"><span id="s0">Order sent</span><span id="s1">Accepted</span><span id="s2">Cooking</span><span id="s3">Ready</span></div>
+<p id="line" class="mut"></p>
+<div class="row" style="justify-content:center"><a class="btn dark" href="/bill/{{o.id}}">Download bill (PDF)</a><button class="btn sun" type="button" onclick="document.getElementById('cook').showModal()">Track order</button><a class="btn ghost" href="/orders">My orders</a></div></div>
+<div style="max-width:680px;margin:auto"><div class="row" style="justify-content:center;margin:0 0 10px"><a class="btn sm ghost" href="/bill/{{o.id}}/view" target="_blank">Open bill in a new tab</a></div>{% include "_receipt.html" %}</div>
+{% if not has_review(o.id) %}<div class="card" id="rev" style="max-width:680px;margin:14px auto;text-align:center"><b>How was your order?</b> <span class="mut">Your review goes to the counter and the admin.</span><br><button class="btn sun" style="margin-top:8px" onclick="openReview({{o.id}},CN,'',()=>location.reload())">⭐ Rate &amp; review</button></div>{% else %}<div class="card" style="max-width:680px;margin:14px auto;text-align:center">⭐ Thanks, your review is saved and shared with {{cn}} and the admin.</div>{% endif %}
+{% include "_reviewdialog.html" %}
+<dialog id="cook" class="bigpop"><div id="cookbody"></div><form method="dialog" style="margin-top:14px"><button class="btn ghost sm">Close</button></form></dialog>
+<script>
+const OID={{o.id}},CN={{cn|tojson}},FL={{o.floor}};let S={{state|tojson}},total=null,tick=null;
+function mmss(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function draw(){
+ const b=document.getElementById('cookbody'),L=document.getElementById('line'),st={Pending:0,Accepted:2,Ready:3,Collected:3,Rejected:-1}[S.status];
+ 
+ ['s0','s1','s2','s3'].forEach((id,i)=>{const e=document.getElementById(id);e.className=st>=0&&i<st?'done':(st>=0&&i===st?'on':'')});
+ if(S.status==='Pending'){b.innerHTML='<span class="pot">🍳</span><h2>Order sent to '+CN+'</h2><p class="mut">Waiting for the counter to accept your order...</p>';L.textContent='Waiting for '+CN+' to accept...'}
+ else if(S.status==='Accepted'){if(total===null||S.eta*60>total)total=S.eta*60;const pct=Math.min(100,100-S.left*100/(S.eta*60));
+  b.innerHTML='<span class="pot">🍲</span><h2>Cooking in process...</h2><p class="mut">'+CN+' accepted your order and is preparing it.</p><h1 style="margin:.1em">'+mmss(S.left)+'</h1><div class="bar2"><i style="width:'+pct+'%"></i></div><p class="mut">Estimated '+S.eta+' min. We will alert you when it is ready.</p>';L.textContent='Cooking, ready in about '+mmss(S.left)}
+ else if(S.status==='Ready'){b.innerHTML='<span class="em" style="font-size:5rem;display:block;animation:bob 1.2s infinite">🍽️</span><h2>Your dish is ready!</h2><p>Please collect order #'+OID+' from <b>'+CN+'</b>, Floor '+FL+'.</p>';L.textContent='Ready for pickup at '+CN}
+ else if(S.status==='Collected'){b.innerHTML='<span class="em" style="font-size:4rem;display:block">😋</span><h2>Enjoy your meal!</h2>';L.textContent='Collected. Enjoy!'}
+ else{b.innerHTML='<span class="em" style="font-size:4rem;display:block">😞</span><h2>Order declined</h2><p>'+(S.reason||'')+'</p><p class="mut">Any online payment will be refunded.</p>';L.textContent='Declined by the counter'}
+}
+let last=S.status;
+async function poll(){try{const r=await fetch('/api/order/'+OID,{cache:'no-store'});S=await r.json();draw();
+ if(S.status!==last){last=S.status;const d=document.getElementById('cook');if(!d.open)d.showModal();if(window.CF_beep)CF_beep()}}catch(e){}}
+draw();setInterval(poll,3000);
+setInterval(()=>{if(S.status==='Accepted'&&S.left>0){S.left--;draw()}},1000);
+{% if new %}setTimeout(()=>{ {% if not has_review(o.id) %}openReview({{o.id}},CN,'',()=>{const d=document.getElementById('cook');if(!d.open)d.showModal()}){% else %}document.getElementById('cook').showModal(){% endif %} },2600);{% endif %}
+</script>{% endblock %}

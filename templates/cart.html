@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block body %}<h1>Your cart</h1>
+{% from "_paylogo.html" import logo %}
+{% if lines %}<p class="mut">Ordering from <b>{{cn}}</b>, Floor {{c.floor}} {% if PURE_VEG %}<span class="vegmark"><i></i>PURE VEG</span>{% endif %}</p>
+<div class="card"><table><tr><th></th><th>Item</th><th>Price</th><th>Qty</th><th>Amount</th><th></th></tr>
+{% for l in lines %}<tr><td>{{l.emoji}}</td><td>{{l.name}}</td><td>{{l.price}}</td><td>{{l.qty}}</td><td>Rs {{l.sub}}</td><td><a href="/cart/remove/{{l.iid}}">Remove</a></td></tr>{% endfor %}
+{% if disc %}<tr><td colspan="4" class="mut">Subtotal</td><td colspan="2">Rs {{subtotal}}</td></tr>{% for d in disc %}<tr class="save-row"><td>🏷️</td><td colspan="3">{{d.label}}</td><td colspan="2">- Rs {{d.amount}}</td></tr>{% endfor %}{% endif %}
+<tr><th colspan="4">Total</th><th colspan="2">Rs {{total}}</th></tr></table>{% if disc %}<p class="up" style="margin:8px 0 0">You are saving Rs {{subtotal-total}} with offers!</p>{% endif %}<p class="mut">Bill calculated with a stack: {{expr}}</p></div>
+<form method="post" action="/pay" class="card" id="payform"><h2 style="margin-top:0">Payment</h2>
+<div class="pay-grid two">
+<label class="pay"><input type="radio" name="method" value="upi" checked><span class="plogos">{{logo('gpay')}}{{logo('phonepe')}}{{logo('paytm')}}</span><span>Scan &amp; pay with UPI</span><small class="mut">Google Pay, PhonePe, Paytm or any UPI app</small></label>
+<label class="pay"><input type="radio" name="method" value="cod">{{logo('cod')}}<span>Cash on Delivery</span><small class="mut">Pay cash when you collect</small></label></div>
+<div id="cashbox" style="display:none;margin:10px 0" class="card"><b>Paying cash?</b> I will pay with Rs <input id="tender" type="number" min="{{total}}" value="{{ ((total//100)+1)*100 }}" style="width:110px;margin:0 6px"> <span id="chg" class="mut"></span></div>
+<div class="qrbox on" id="qrbox"><div class="qrcard">{% if qr %}{{qr}}{% else %}<p class="mut">Install the QR package: <code>pip install segno</code></p>{% endif %}</div>
+<div><b style="font-size:1.5rem">Rs {{total}}</b><p class="mut" style="margin:4px 0">Open any UPI app, tap <b>Scan</b>, and scan this code.</p><p class="mut" style="margin:0;font-size:.82rem">Paying to {{upi_vpa}} (sample QR for this project)</p></div></div>
+<button class="btn mint" id="paybtn">I have scanned &amp; paid Rs {{total}}</button> <a class="btn ghost" href="/counter/{{c.counter}}">Add more</a> <a href="/cart/clear" style="margin-left:10px">Clear cart</a></form>
+<div class="proc" id="proc"><div><div class="spin"></div><h2 id="proctxt" style="margin:0">Confirming your payment...</h2><p>Please do not close this page</p></div></div>
+<script>
+const f=document.getElementById('payform');
+f.addEventListener('change',()=>{const m=f.method.value;document.getElementById('qrbox').classList.toggle('on',m==='upi');document.getElementById('cashbox').style.display=m==='cod'?'block':'none';if(m==='cod')chg();document.getElementById('paybtn').textContent=m==='cod'?'Place order (pay Rs {{total}} in cash)':'I have scanned & paid Rs {{total}}'});
+async function chg(){const p=document.getElementById('tender').value,o=document.getElementById('chg');try{const r=await (await fetch('/api/change?total={{total}}&paid='+p)).json();
+ o.innerHTML=r.short?'Short by Rs '+r.short:(r.change?'Change Rs '+r.change+' (greedy): '+r.notes.map(n=>'<b>'+n[1]+'&times;Rs'+n[0]+'</b>').join(' + '):'Exact amount, no change.')}catch(e){}}
+document.getElementById('tender').addEventListener('input',chg);
+f.addEventListener('submit',e=>{e.preventDefault();const m=f.method.value;document.getElementById('proctxt').textContent=m==='cod'?'Placing your order...':'Confirming your payment...';
+ document.getElementById('proc').classList.add('on');setTimeout(()=>f.submit(),2200)});
+</script>
+{% else %}<div class="card">Your cart is empty. <a href="/home">Pick something tasty</a>.</div>{% endif %}{% endblock %}

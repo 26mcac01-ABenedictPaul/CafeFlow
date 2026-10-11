@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Search uses a BST</h2><ul>
+<li>All food items are stored in a <b>binary search tree</b> keyed by name.</li>
+<li>A search starts at the root and goes left or right at each step, skipping half of what is left every time.</li>
+<li>Open <b>Menu tree</b> to see the tree and the path a search walks.</li></ul>{% endblock %}
+{% block body %}<h1>Search food</h1>
+<form class="row"><input name="q" value="{{q}}" placeholder="Search for dosa, burger, coffee..." style="flex:1;margin:0"><button class="btn sun">Search</button></form>
+{% if note %}<p class="mut">{{note}}</p>{% endif %}
+{% include "_items.html" %}{% endblock %}

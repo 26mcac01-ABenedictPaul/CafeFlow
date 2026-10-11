@@ -1,0 +1,21 @@
+{% extends "vbase.html" %}{% block vbody %}<script>window.CF_RELOAD=true;setTimeout(()=>{if(!document.hidden)location.reload()},60000)</script>
+<h1 style="margin-top:0">Orders</h1><p class="mut">New orders pop up here live. Oldest first: accept or decline the first order in the queue.</p>
+<h2 class="sec" style="margin-top:14px">New orders <small>{{pending|length}} waiting (queue)</small></h2>
+{% for o in pending %}<div class="ordcard {{'new' if loop.first}}"><div class="row"><b>#{{o.id}}</b><span class="tag Pending">New</span><span class="mut">{{o.cname}} &middot; {{o.time}} &middot; {{o.pay}} ({{o.pay_status}})</span><b style="margin-left:auto">Rs {{o.total}}</b></div>
+<p style="margin:8px 0">{% for l in o.lines %}{{l.emoji}} <b>{{l.qty}} x</b> {{l.name}}{{" &middot; "|safe if not loop.last}}{% endfor %}</p>
+{% if loop.first %}<div class="row"><form method="post" action="/vendor/order/{{o.id}}/accept"><label class="mut">Ready in</label><input type="number" name="minutes" value="10" min="1" max="120"><span class="mut">min</span>
+{% for m in [5,10,15,20] %}<button class="btn sm ghost" type="button" onclick="this.form.minutes.value={{m}}">{{m}}</button>{% endfor %}<button class="btn mint sm">Accept order</button></form>
+<form method="post" action="/vendor/order/{{o.id}}/decline"><input name="reason" placeholder="Reason (optional)" style="width:190px"><button class="btn sm ghost" style="border-color:#d0342c;color:#d0342c">Decline</button></form></div>
+{% else %}<span class="mut">Waiting in line (first come, first served)</span>{% endif %}</div>
+{% else %}<div class="card mut">No new orders. You will hear a chime when one arrives.</div>{% endfor %}
+<h2 class="sec">Being prepared <small>{{cooking|length}}</small></h2>
+{% for o in cooking %}<div class="ordcard"><div class="row"><b>#{{o.id}}</b><span class="tag Accepted">Cooking</span><span class="mut">{{o.cname}} &middot; promised {{o.eta}} min</span>
+<b style="color:{{'#c0392b' if o.eta_end and o.eta_end < now else '#0d7a62'}}">{% if o.eta_end %}{% set left = ((o.eta_end - now)/60)|round|int %}{{ left ~ ' min left' if left > 0 else 'overdue' }}{% endif %}</b><b style="margin-left:auto">Rs {{o.total}}</b></div>
+<p style="margin:8px 0">{% for l in o.lines %}{{l.emoji}} <b>{{l.qty}} x</b> {{l.name}}{{" &middot; "|safe if not loop.last}}{% endfor %}</p>
+<form method="post" action="/vendor/order/{{o.id}}/ready"><button class="btn sm">Mark ready &amp; notify customer</button></form></div>
+{% else %}<div class="card mut">Nothing cooking right now.</div>{% endfor %}
+<h2 class="sec">Recent <small>ready, collected, declined</small></h2>
+<div class="card"><table><tr><th>#</th><th>Customer</th><th>Items</th><th>Amount</th><th>Status</th><th></th></tr>
+{% for o in done %}<tr><td>{{o.id}}</td><td>{{o.cname}}</td><td class="mut">{{o.lines|sum(attribute='qty')}} item(s)</td><td>Rs {{o.total}}</td><td><span class="tag {{o.status}}">{{o.status}}</span></td>
+<td>{% if o.status=='Ready' %}<form method="post" action="/vendor/order/{{o.id}}/collected"><button class="btn sm dark">Mark collected{{' (cash received)' if o.pay_status=='Pay on delivery'}}</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="mut">Nothing yet.</td></tr>{% endfor %}</table></div>
+{% endblock %}

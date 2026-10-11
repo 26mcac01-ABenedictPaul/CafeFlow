@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Phase 4: problem-solving algorithms</h2><ul>
+<li><b>Greedy (change maker)</b>: always take the biggest note or coin that still fits. For Indian currency this gives the fewest pieces. Used for cash orders in your cart.</li>
+<li><b>Dynamic programming (budget meal planner)</b>: 0/1 knapsack. A table stores the best value for every smaller budget, so no combination is tried twice. Value of a dish grows with how many were sold.</li>
+<li><b>Backtracking (group seating)</b>: try a table for a group, go on to the next group, and undo the choice when stuck or when it wastes more seats than the best plan so far.</li></ul>{% endblock %}
+{% block body %}
+<style>.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:860px){.g2{grid-template-columns:1fr}}
+.note{display:inline-flex;align-items:center;gap:6px;background:#fff1e9;border:1.5px solid #ffd2bd;border-radius:12px;padding:6px 12px;margin:3px;font-weight:700}.note b{color:#e8472f}
+.dp td,.dp th{text-align:center;font-size:.8rem;padding:4px 6px}.dp td.pick{background:#7be0b8;font-weight:800}.big{font-size:1.5rem;font-weight:800}
+.tag{display:inline-block;border-radius:99px;padding:2px 12px;font-size:.75rem;font-weight:800;color:#fff;background:#1b1f3b;vertical-align:middle}</style>
+<div class="pagehead"><h1>Smart canteen toolkit</h1><p class="mut">Phase 4: one greedy, one dynamic programming and one backtracking algorithm, working inside the real ordering and booking flow.</p></div>
+
+<h2 class="sec" id="greedy"><span class="tag">GREEDY</span> Change maker <small>cash on delivery</small></h2>
+<div class="card"><form method="get" class="row"><label>Bill Rs</label><input name="bill" type="number" min="1" value="{{bill}}" style="width:110px;margin:0"><label>Customer pays Rs</label><input name="paid" type="number" min="1" value="{{paid}}" style="width:110px;margin:0"><button class="btn sun">Make change</button></form>
+{% if paid < bill %}<p class="mut">The customer still owes Rs {{bill-paid}}.</p>{% else %}<p style="margin:12px 0 4px">Change to hand back: <span class="big">Rs {{paid-bill}}</span> in <b>{{pieces}}</b> piece(s)</p>
+<div>{% for d,n in notes %}<span class="note"><b>{{n}} &times;</b> Rs {{d}}</span>{% else %}<span class="mut">No change needed.</span>{% endfor %}</div>{% endif %}
+<p class="mut" style="margin-bottom:0">Also used live on the <a href="/cart">cart page</a> when you choose Cash on Delivery. Time: O(k) for k denominations.</p></div>
+
+<h2 class="sec" id="dp"><span class="tag">DYNAMIC PROGRAMMING</span> Budget meal planner <small>0/1 knapsack</small></h2>
+<div class="chips">{% for k,c in COUNTERS.items() %}<a href="/solve?c={{k}}&budget={{budget}}#dp" class="{{'on' if k==ck}}">{{c.name}}</a>{% endfor %}</div>
+<div class="card"><form method="get" class="row"><input type="hidden" name="c" value="{{ck}}"><label>My budget Rs</label><input name="budget" type="number" min="10" max="400" value="{{budget}}" style="width:110px;margin:0"><button class="btn sun">Plan my meal</button></form>
+{% if chosen %}<p style="margin:12px 0 4px">Best meal for Rs {{budget}}: <span class="big">{{chosen|length}} dish(es), Rs {{spent}}</span> <span class="mut">(satisfaction score {{value}})</span></p>
+<form method="post" action="/solve/cart"><table><tr><th></th><th>Dish</th><th>Price</th></tr>{% for c in chosen %}<tr><td>{{c.emoji}}</td><td>{{c.name}}<input type="hidden" name="iid" value="{{c.id}}"></td><td>Rs {{c.price}}</td></tr>{% endfor %}</table><button class="btn mint" style="margin-top:10px">Add this meal to my cart</button></form>
+{% else %}<p class="mut">No dish fits this budget at this counter.</p>{% endif %}
+<details style="margin-top:12px"><summary><b>Show the DP table</b> <span class="mut">(first {{show|length}} of {{pool_n}} dishes; each cell = best score for that budget)</span></summary>
+<div style="overflow-x:auto"><table class="dp"><tr><th>Dish \ Rs</th>{% for c in cols %}<th>{{c}}</th>{% endfor %}</tr>
+{% for it in show %}{% set i = loop.index %}<tr><th style="text-align:left">{{it.name}} ({{it.price}})</th>{% for c in cols %}<td class="{{'pick' if table[i][c]!=table[i-1][c]}}">{{table[i][c]}}</td>{% endfor %}</tr>{% endfor %}</table></div>
+<p class="mut">Green = taking this dish improved the score. Time and space: O(n &times; budget). Trying every combination by brute force would be O(2<sup>n</sup>).</p></details></div>
+
+<h2 class="sec" id="bt"><span class="tag">BACKTRACKING</span> Group seating <small>tables and sofas on Floor {{floor}}</small></h2>
+<div class="card"><form method="get" class="row"><label>Group sizes</label><input name="groups" value="{{groups}}" placeholder="4, 3, 6" style="width:130px;margin:0" title="up to 5 groups, 1 to 6 people each">
+<select name="date" style="width:auto;margin:0">{% for x in days %}<option value="{{x}}" {{'selected' if x==d}}>{{x}}</option>{% endfor %}</select>
+<select name="start" style="width:auto;margin:0">{% for s in starts %}<option value="{{s}}" {{'selected' if s==start}}>{{pretty_time(s)}}</option>{% endfor %}</select>
+<select name="dur" style="width:auto;margin:0">{% for x in durs %}<option value="{{x}}" {{'selected' if x==dur}}>{{x}} min</option>{% endfor %}</select><button class="btn sun">Find seats</button></form>
+{% if plan %}<p style="margin:12px 0 4px">Every group gets its own seat unit. Wasted seats: <span class="big">{{waste}}</span> <span class="mut">&middot; {{nodes}} choices explored out of {{n_free}} free units</span></p>
+<table><tr><th>Group</th><th>People</th><th>Unit</th><th>Seats</th></tr>{% for g,size,uid,seats in plan %}<tr><td>Group {{g}}</td><td>{{size}}</td><td><b>{{uid}}</b></td><td>{{seats}}</td></tr>{% endfor %}</table>
+<form method="post" action="/solve/seats"><input type="hidden" name="floor" value="{{floor}}"><input type="hidden" name="groups" value="{{groups|replace(' ','')}}"><input type="hidden" name="date" value="{{d}}"><input type="hidden" name="start" value="{{start}}"><input type="hidden" name="dur" value="{{dur}}"><button class="btn mint" style="margin-top:10px">Book these seats</button></form>
+{% else %}<p class="mut">No arrangement of free seats can hold all these groups at this time. Try fewer groups or another time.</p>{% endif %}
+<p class="mut" style="margin-bottom:0">Choose a unit, go deeper, undo when stuck (backtrack), prune plans that already waste more than the best. Related: <a href="/reserve">single seat booking</a>.</p></div>
+{% endblock %}

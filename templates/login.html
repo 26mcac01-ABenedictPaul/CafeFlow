@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% block nav %}{% endblock %}
+{% block body %}
+<style>
+body{background:linear-gradient(135deg,#fff3c4,#ffd9e8 50%,#d6f1ff);overflow:hidden;min-height:100vh}
+main{position:fixed;inset:0;max-width:none;margin:0;padding:0;z-index:2;display:grid;place-items:center;pointer-events:none}
+.wall{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:space-around;padding:10px 0;z-index:1}
+.track{display:flex;gap:18px;width:max-content;animation:ltr 40s linear infinite}.track.slow{animation-duration:55s}.track.rev{animation-name:rtl}
+.p{width:150px;height:195px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:800;box-shadow:0 6px 16px rgba(0,0,0,.12);flex:none}
+.p span{font-size:4rem}
+@keyframes ltr{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@keyframes rtl{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tilebox{position:relative;z-index:3;pointer-events:auto;width:min(390px,92vw);background:rgba(255,255,255,.96);border-radius:24px;padding:28px;box-shadow:0 0 0 10px rgba(255,255,255,.55),0 20px 60px rgba(43,29,58,.3);text-align:center}
+.tilebox h1{margin:0}.tabs{display:flex;gap:6px;margin:16px 0}.tabs button{flex:1;padding:9px;border:0;border-radius:10px;background:#f3ead9;font:inherit;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--ink);color:#fff}.tilebox form{text-align:left}.hide{display:none}.tilebox .btn{width:100%}
+.tilebox .flash{text-align:left;font-size:.92rem}
+</style>
+<div class="wall">
+{% for r in range(3) %}<div class="track {{'rev' if r==1}} {{'slow' if r==2}}">
+{% for k in range(2) %}{% for e,n,c1,c2 in posters[r*4:]+posters[:r*4] %}<div class="p" style="background:linear-gradient(160deg,{{c1}},{{c2}})"><span>{{e}}</span>{{n}}</div>{% endfor %}{% endfor %}</div>{% endfor %}
+</div>
+<div class="tilebox">
+<h1>Cafe<span style="color:var(--pink)">Flow</span></h1><p class="mut" style="margin:4px 0 6px">Hungry? Come have a bite.</p><span class="vegmark both"><span class="vn"></span><span class="vn n"></span>Floor 1 pure veg &middot; Floor 2 veg &amp; non-veg</span>
+{% for m in get_flashed_messages() %}<div class="flash">{{m}}</div>{% endfor %}
+<div class="tabs"><button id="tl" class="on" onclick="tab('l')">Log in</button><button id="tr" onclick="tab('r')">Register</button></div>
+<form id="fl" method="post" action="/login"><label>Name</label><input name="name" id="ln" required autocomplete="username" autocapitalize="none"><label>Password</label><div style="position:relative"><input type="password" name="password" id="lp" required autocomplete="current-password" style="padding-right:64px"><button type="button" id="eye" style="position:absolute;right:8px;top:50%;translate:0 -62%;border:0;background:none;cursor:pointer;font-weight:700;color:var(--mut)">Show</button></div>
+<label style="display:flex;align-items:center;gap:8px;font-weight:600;margin:6px 0 12px;cursor:pointer"><input type="checkbox" name="remember" id="rem" value="1" checked style="width:auto;margin:0"> Remember me on this device (30 days)</label><button class="btn">Log in</button><p class="mut" style="font-size:.82rem;margin:10px 0 0">Counter staff and admin: log in here with your counter username.</p></form>
+<form id="fr" class="hide" method="post" action="/register"><label>Name</label><input name="name" required autocomplete="username"><label>Gmail</label><input type="email" name="email" required autocomplete="email">
+<label>Password</label><input type="password" name="password" required autocomplete="new-password"><label>Confirm password</label><input type="password" name="confirm" required autocomplete="new-password"><button class="btn mint">Create account</button></form>
+</div>
+<script>
+(function(){const n=document.getElementById('ln'),r=document.getElementById('rem');try{const s=localStorage.getItem('cf_name');if(s){n.value=s;document.getElementById('lp').focus()}}catch(e){}
+document.getElementById('fl').addEventListener('submit',()=>{try{r.checked?localStorage.setItem('cf_name',n.value.trim()):localStorage.removeItem('cf_name')}catch(e){}});
+document.getElementById('eye').onclick=function(){const p=document.getElementById('lp');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'}})();
+function tab(t){for(const k of['l','r']){document.getElementById('f'+k).classList.toggle('hide',k!=t);document.getElementById('t'+k).classList.toggle('on',k==t)}}</script>
+{% endblock %}

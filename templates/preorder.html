@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Pre-order plans</h2><ul><li>A plan is a <b>linked-list record</b>: the meal, the dates and the discounted price.</li><li>Every meal day is turned into a normal order and joins the counter's <b>queue</b> {{60}} minutes before pickup.</li><li>The longer the plan, the bigger the discount; the counter sees tomorrow's total per dish and prepares in advance.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.pgrid{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;align-items:start}@media(max-width:980px){.pgrid{grid-template-columns:1fr}}
+.dpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:340px;overflow:auto;padding:4px}
+.dp{display:flex;align-items:center;gap:10px;border:2px solid var(--line);border-radius:14px;padding:8px;background:#fff}.dp.on{border-color:var(--brand);background:#fff7f2}
+.dp img,.dp .ph{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none;display:grid;place-items:center;background:#fff3dc;font-size:1.5rem}.dp b{font-size:.88rem;display:block;line-height:1.2}.dp small{color:var(--mut)}
+.step{display:flex;align-items:center;gap:4px;margin-left:auto}.step button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:800;cursor:pointer}.step span{min-width:18px;text-align:center;font-weight:800}
+.plans{display:flex;flex-wrap:wrap;gap:8px}.plans button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:700;text-align:center}.plans button small{display:block;color:#0d7a4f;font-weight:800}
+.plans button.on{border-color:var(--brand);background:#fff7f2}
+.cal{border:1px solid var(--line);border-radius:16px;padding:12px;background:#fff}.calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}.cg i{font-style:normal;font-size:.72rem;color:var(--mut);font-weight:700}
+.cd{height:42px;border:0;border-radius:10px;background:#f4f5fa;font:inherit;font-weight:600;cursor:pointer;position:relative}.cd:disabled{background:transparent;color:#c4c7d6;cursor:not-allowed}
+.cd.on{background:var(--brand);color:#fff}.cd.skip{background:#fde4e0;color:#b5321f;text-decoration:line-through}.cd.off{background:#eceef6;color:#9aa0b8}.cd.start{box-shadow:0 0 0 3px var(--ink)}
+.dow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.dow label{border:1.5px solid var(--line);border-radius:99px;padding:5px 13px;cursor:pointer;font-weight:700;font-size:.85rem;background:#fff}.dow label.on{background:var(--ink);color:#fff;border-color:var(--ink)}.dow input{display:none}
+.sum{position:sticky;top:84px}.sum .big{font-size:2rem;font-weight:800;letter-spacing:-.02em}.sum s{color:var(--mut)}.badge{background:#d4f2e4;color:#14573f;border-radius:99px;padding:3px 12px;font-weight:800;font-size:.82rem}
+.pc{border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#fff;margin:10px 0}
+</style>
+<div class="banner" style="--a:#6d4de0;--b:#3b2c9e;min-height:150px;margin-bottom:14px"><span class="no">Meal plans</span><h1>Pre-order your meals</h1><p>Choose a meal once, pick the days on the calendar and pay a lower price. Your food is sent to the counter before pickup, so there is no queue.</p></div>
+{% if request.args.get('ok') %}<div class="flash">Pre-order plan #{{request.args.get('ok')}} is confirmed. The counter has been notified and your bill is below (tap Bill).</div>{% endif %}
+<div class="pgrid"><div>
+<div class="card"><b>1. Choose counter and meal</b> <span class="mut">(Floor {{floor}})</span>
+<div class="chips" id="cchips">{% for k,c in COUNTERS.items() %}<button type="button" data-k="{{k}}">{{c.emoji}} {{c.name}}</button>{% endfor %}</div>
+<div class="dpick" id="dpick"></div></div>
+<div class="card"><b>2. How long?</b> <span class="mut">longer plans get a bigger discount</span><div class="plans" id="plans">{% for p in plans %}<button type="button" data-k="{{p.key}}">{{p.label}}<small>{{p.pct}}% off</small></button>{% endfor %}</div></div>
+<div class="card"><b>3. Pick the days</b> <span class="mut" id="calhint">Tap your start date (from tomorrow). Tap a highlighted day to skip it.</span>
+<div class="dow" id="dow">{% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<label data-d="{{loop.index0}}">{{d}}</label>{% endfor %}</div>
+<div class="cal"><div class="calh"><button type="button" class="btn sm ghost" id="pm">&larr;</button><b id="mt"></b><button type="button" class="btn sm ghost" id="nm">&rarr;</button></div><div class="cg" id="cg"></div></div>
+<div class="row" style="margin-top:10px"><label class="mut">Pickup time</label><select id="pickup" style="width:auto;margin:0">{% for s in starts %}<option value="{{s}}" {{'selected' if s==780}}>{{pretty_time(s)}}</option>{% endfor %}</select><span class="mut">Order reaches the counter 1 hour before.</span></div></div>
+</div>
+<aside class="sum"><div class="card"><b>Your plan</b><div id="sbody" class="mut" style="margin-top:6px">Choose a meal, a plan and a start date to see your price.</div>
+<div id="pay" style="display:none;margin-top:10px"><label>Payment</label><select id="method" style="margin-bottom:8px"><option value="upi">Pay now: scan &amp; pay with UPI</option><option value="cod">Pay cash at pickup each day</option></select><button class="btn mint" id="go" style="width:100%">Confirm plan</button></div><p id="err" style="color:#c0392b;font-weight:600;margin:8px 0 0"></p></div></aside></div>
+<h2 class="sec">My pre-orders</h2>
+{% for m in mine %}{% set p = m.p %}<div class="pc"><div class="row"><b>Plan #{{p.id}}</b><span class="tag {{'Accepted' if p.status=='active' else 'Collected'}}">{{p.status|capitalize}}</span><span class="mut">{{m.cname}} &middot; {{p.plan.label}} &middot; {{m.span}} &middot; pickup {{pretty_time(p.pickup)}}</span>
+<b style="margin-left:auto">Rs {{p.per_day}}/day <s class="mut" style="font-weight:500">Rs {{p.regular}}</s></b></div>
+<p style="margin:6px 0">{% for l in p.lines %}{{l.emoji}} {{l.qty}} x {{l.name}}{{" + " if not loop.last}}{% endfor %} <span class="mut">&middot; {{m.done}} of {{p.days|length}} meals sent, {{m.left}} to go{% if m.next %}, next {{m.next}}{% endif %}</span></p>
+<div class="row"><span class="badge">You save Rs {{p.saved}}</span><span class="mut">Total Rs {{p.total}} {{'(paid by UPI)' if p.method=='upi' else '(cash at pickup)'}}</span>
+<a class="btn sm ghost" href="/preorder/{{p.id}}/bill" style="margin-left:auto">🧾 Bill</a>{% if p.status=='active' %}<form method="post" action="/preorder/{{p.id}}/cancel" style="margin-left:auto" onsubmit="return confirm('Cancel the remaining {{m.left}} meal day(s)?')"><button class="btn sm ghost" style="border-color:#d0342c;color:#d0342c">Cancel plan</button></form>{% elif p.refund %}<span class="mut" style="margin-left:auto">Refund Rs {{p.refund}}</span>{% endif %}</div></div>
+{% else %}<div class="card mut">No pre-orders yet.</div>{% endfor %}
+<dialog id="qrd" class="bigpop"><h2 style="margin-top:0">Scan &amp; pay</h2><div id="qrbox" style="width:210px;margin:auto"></div><p class="mut">Pay <b id="qamt"></b> with Google Pay, PhonePe, Paytm or any UPI app ({{upi_vpa}}).</p>
+<div class="row" style="justify-content:center"><button class="btn mint" id="paid">I have paid</button><button class="btn ghost" onclick="document.getElementById('qrd').close()">Back</button></div></dialog>
+<script>
+const MENUS={{menus|tojson}},FLOOR={{floor}},TOM='{{tomorrow}}',MAXD='{{maxd}}',PLANS={{plans|tojson}};
+const S={k:Object.keys(MENUS)[0],items:{},plan:'1w',start:'',dow:[0,1,2,3,4],skip:new Set(),view:new Date(TOM+'T00:00:00'),quote:null};
+const $=id=>document.getElementById(id),iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const days=()=>PLANS.find(p=>p.key===S.plan).days;
+function inRange(s){if(!S.start)return false;const d=new Date(s+'T00:00:00'),a=new Date(S.start+'T00:00:00');const n=Math.round((d-a)/864e5);return n>=0&&n<days()}
+function drawDish(){$('cchips').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===S.k));
+ $('dpick').innerHTML=MENUS[S.k].map(d=>{const q=S.items[d.id]||0;return `<div class="dp ${q?'on':''}">${d.pic?`<img src="${d.pic}" alt="">`:`<span class="ph">${d.emoji}</span>`}<div><b>${d.name}</b><small>Rs ${d.price}</small></div><div class="step"><button type="button" data-i="${d.id}" data-s="-1">-</button><span>${q}</span><button type="button" data-i="${d.id}" data-s="1">+</button></div></div>`}).join('')}
+function drawCal(){const v=S.view,y=v.getFullYear(),m=v.getMonth();$('mt').textContent=v.toLocaleString('en-IN',{month:'long',year:'numeric'});
+ const first=new Date(y,m,1),pad=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();let h=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<i>${x}</i>`).join('');
+ for(let i=0;i<pad;i++)h+='<span></span>';
+ for(let d=1;d<=n;d++){const dt=new Date(y,m,d),s=iso(dt),dis=s<TOM||s>MAXD,wd=(dt.getDay()+6)%7;let c='';
+  if(!dis&&inRange(s)){c=!S.dow.includes(wd)?'off':S.skip.has(s)?'skip':'on'}if(s===S.start)c+=' start';
+  h+=`<button type="button" class="cd ${c}" data-d="${s}" ${dis?'disabled':''}>${d}</button>`}
+ $('cg').innerHTML=h;$('pm').disabled=new Date(y,m,1)<=new Date(TOM.slice(0,7)+'-01');}
+function drawChips(){$('plans').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===S.plan));$('dow').querySelectorAll('label').forEach(l=>l.classList.toggle('on',S.dow.includes(+l.dataset.d)))}
+let tq;function ask(){clearTimeout(tq);tq=setTimeout(async()=>{$('err').textContent='';const body=payload();
+ if(!Object.keys(S.items).length||!S.start){$('sbody').innerHTML='Choose a meal, a plan and a start date to see your price.';$('pay').style.display='none';S.quote=null;return}
+ const r=await (await fetch('/api/preorder/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();S.quote=r.ok?r:null;
+ if(!r.ok){$('sbody').textContent='';$('err').textContent=r.error;$('pay').style.display='none';return}
+ $('sbody').innerHTML=`<div>${r.lines.map(l=>`${l.qty} x ${l.name}`).join(' + ')}</div><div class="mut">${r.cname} &middot; ${r.plan} &middot; ${r.n} meal day(s)</div>
+ <div style="margin:10px 0"><s>Rs ${r.regular}</s> <span class="big">Rs ${r.per_day}</span> <span class="mut">per day</span> <span class="badge">${r.pct}% off</span></div>
+ <table><tr><td>Total for ${r.n} day(s)</td><td style="text-align:right"><b>Rs ${r.total}</b></td></tr><tr><td class="mut">Without plan</td><td style="text-align:right"><s class="mut">Rs ${r.full}</s></td></tr><tr><td style="color:#0d7a4f"><b>You save</b></td><td style="text-align:right;color:#0d7a4f"><b>Rs ${r.saved}</b></td></tr></table>`;$('pay').style.display='block'},250)}
+function payload(){return{floor:FLOOR,counter:S.k,items:S.items,plan:S.plan,start:S.start,weekdays:S.dow,skip:[...S.skip],pickup:+$('pickup').value,method:$('method').value}}
+function refresh(){drawDish();drawChips();drawCal();ask()}
+$('cchips').onclick=e=>{const b=e.target.closest('button');if(b){S.k=b.dataset.k;S.items={};refresh()}};
+$('dpick').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=b.dataset.i,q=Math.max(0,Math.min(10,(S.items[i]||0)+ +b.dataset.s));if(q)S.items[i]=q;else delete S.items[i];drawDish();ask()};
+$('plans').onclick=e=>{const b=e.target.closest('button');if(b){S.plan=b.dataset.k;S.skip.clear();if(S.start&&days()>1&&false)S.start='';refresh()}};
+$('dow').onclick=e=>{const l=e.target.closest('label');if(!l)return;const d=+l.dataset.d;S.dow=S.dow.includes(d)?S.dow.filter(x=>x!==d):[...S.dow,d];refresh()};
+$('cg').onclick=e=>{const b=e.target.closest('.cd');if(!b||b.disabled)return;const s=b.dataset.d;if(S.start&&days()>1&&inRange(s)&&s!==S.start&&b.classList.contains('on')||b.classList.contains('skip')){S.skip.has(s)?S.skip.delete(s):S.skip.add(s)}else{S.start=s;S.skip.clear()}refresh()};
+$('pm').onclick=()=>{S.view=new Date(S.view.getFullYear(),S.view.getMonth()-1,1);drawCal()};$('nm').onclick=()=>{S.view=new Date(S.view.getFullYear(),S.view.getMonth()+1,1);drawCal()};
+$('pickup').onchange=ask;
+async function create(){const r=await (await fetch('/preorder/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())})).json();if(r.ok)location.href='/preorder?ok='+r.id;else{$('err').textContent=r.error;$('qrd').close()}}
+$('go').onclick=()=>{if(!S.quote)return;if($('method').value==='upi'){$('qrbox').innerHTML=S.quote.qr||'<p class="mut">QR needs: pip install segno</p>';$('qamt').textContent='Rs '+S.quote.total;$('qrd').showModal()}else create()};
+$('paid').onclick=create;refresh();
+</script>{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block explain %}<h2>How this counter page works</h2><ul>
+<li>Menu items are records in a <b>linked list</b>. This page <b>traverses</b> the list and shows the items of this counter.</li>
+<li>Your cart is another linked list (insert, search, delete). The bill is worked out with a <b>stack</b>.</li>
+<li>The sort menu runs our own <b>merge sort</b> on the items (Phase 3).</li>
+<li>When you pay, the order joins the <b>queue</b> of this counter on this floor. There are 6 queues: 3 counters on 2 floors. The counter accepts or declines it on its own site.</li></ul>{% endblock %}
+{% block body %}
+{% set bp = counter_photo(floor, key) %}
+<div class="banner" style="--a:{{c.c1}};--b:{{c.c2}};{% if bp %}background-image:linear-gradient(100deg,rgba(27,31,59,.88),rgba(27,31,59,.15)),url('{{bp}}'){% endif %}">
+<span class="no">Floor {{floor}} &middot; Counter {{c.no}}</span><h1>{{c.name}}</h1><p>{{c.tag}}</p></div>
+<p class="mut" style="margin:12px 0 0"><span class="vlegend"><span><span class="vn"></span>Veg</span>{% if not PURE_VEG %}<span><span class="vn n"></span>Non-veg</span>{% endif %}</span></p>
+{% if deals %}<h2 class="sec" style="margin-top:22px">Offers at this counter <small>applied automatically at checkout</small></h2><div class="adstrip">{% for a in deals %}{% include "_ad.html" %}{% endfor %}</div>{% endif %}
+{% if hot %}<p class="mut" style="margin:8px 0 0">🔥 Most bought here: <b>{{hot|join(", ")}}</b></p>{% endif %}
+<div class="tabbar"><div class="chips" style="margin:0"><a href="/counter/{{key}}?sort={{sort}}" class="{{'on' if not sec}}">All</a>{% for s in c.sections %}<a href="/counter/{{key}}?sec={{s|urlencode}}&sort={{sort}}" class="{{'on' if s==sec}}">{{s}}</a>{% endfor %}</div>
+<label class="mut" style="font-weight:600">Sort (merge sort) <select onchange="location=this.value">{% for k,l in [("","Menu order"),("price_asc","Price: low to high"),("price_desc","Price: high to low"),("name","Name: A to Z")] %}<option value="/counter/{{key}}?sec={{sec|urlencode}}&sort={{k}}" {{'selected' if k==sort}}>{{l}}</option>{% endfor %}</select></label></div>
+{% include "_items.html" %}
+{% endblock %}

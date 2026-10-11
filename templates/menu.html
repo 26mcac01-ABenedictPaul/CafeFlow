@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block body %}
+<h1>Menu</h1>
+<div class="chips">{% for c in ["All","Breakfast","Lunch","Desserts","Drinks"] %}<a href="/menu?cat={{c}}&sort={{sort}}" class="{{'on' if c==cat}}">{{c}}</a>{% endfor %}</div>
+{% if cat=="Drinks" %}<div class="chips">{% for s in ["","Tea","Coffee","Others"] %}<a href="/menu?cat=Drinks&sub={{s}}&sort={{sort}}" class="{{'on' if s==sub}}">{{s or "All drinks"}}</a>{% endfor %}</div>{% endif %}
+<div class="chips"><a href="/menu?cat={{cat}}&sub={{sub}}" class="{{'on' if not sort}}">Default order</a><a href="/menu?cat={{cat}}&sub={{sub}}&sort=price" class="{{'on' if sort=='price'}}">Sort by price</a></div>
+{% if sort=="price" %}<p class="mut">Sorted using an inorder traversal of the menu's price-keyed binary search tree.</p>{% endif %}
+<div class="grid">{% for i in items %}<div class="card item"><div class="em">{{i.emoji}}</div><b>{{i.name}}</b><div class="mut">Rs {{i.price}}</div>
+<form method="post" action="/add"><input type="hidden" name="iid" value="{{i.id}}"><input type="hidden" name="back" value="{{back}}">
+<select name="qty" aria-label="Quantity">{% for q in range(1,6) %}<option>{{q}}</option>{% endfor %}</select><button class="btn sm">Add to cart</button></form></div>
+{% else %}<p class="mut">Nothing here yet.</p>{% endfor %}</div>
+{% if cart_n %}<p><a class="btn mint" href="/cart">Go to cart ({{cart_n}})</a></p>{% endif %}
+{% endblock %}

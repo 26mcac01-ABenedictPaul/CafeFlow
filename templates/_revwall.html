@@ -1,0 +1,20 @@
+{# animated review wall: pass `wall` (list of reviews). Two rows drift in opposite directions, cards float and pop on hover #}
+<style>
+.rw{position:relative;overflow:hidden;border-radius:22px;background:linear-gradient(135deg,#fff3c4,#ffd9e8 55%,#d6f1ff);padding:18px 0;margin:14px 0;-webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.rw .tr{display:flex;gap:16px;width:max-content;padding:8px 0;animation:rwl var(--d,42s) linear infinite}.rw .tr.rv{animation-name:rwr}.rw:hover .tr{animation-play-state:paused}
+@keyframes rwl{to{transform:translateX(-50%)}}@keyframes rwr{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.rc{width:270px;flex:none;background:#fff;border-radius:20px;padding:16px 18px;box-shadow:0 8px 22px rgba(43,29,58,.14);position:relative;transition:transform .2s;animation:rbob 4.5s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.rc:hover{transform:translateY(-8px) rotate(-1.5deg) scale(1.04)}@keyframes rbob{50%{translate:0 -6px}}
+.rc .st{color:#e6a100;letter-spacing:2px;font-size:1.05rem}.rc .st i{color:#e3e5ef;font-style:normal}
+.rc p{margin:6px 0 8px;font-weight:600;line-height:1.35;min-height:2.7em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rc small{color:var(--mut);display:flex;justify-content:space-between;gap:8px}.rc .em{position:absolute;right:12px;top:8px;font-size:1.5rem}
+.rw-empty{padding:30px;text-align:center;font-weight:700;color:var(--mut)}
+@media(prefers-reduced-motion:reduce){.rw .tr,.rc{animation:none}.rw{overflow-x:auto}}
+</style>
+{% if wall %}{% set row1 = wall[0::2] or wall %}{% set row2 = wall[1::2] or wall %}
+<div class="rw" aria-label="Customer reviews">
+{% for row in [row1, row2] %}<div class="tr {{'rv' if loop.index==2}}" style="--d:{{ (row|length * 7 + 22) }}s">
+{% for rep in range(4 if row|length < 3 else 2) %}{% for r in row %}<div class="rc" style="--dl:{{ (loop.index0 % 5) * 0.6 }}s" {% if rep %}aria-hidden="true"{% endif %}><span class="em">{{ {5:'😍',4:'😊',3:'🙂',2:'😕',1:'😞'}[r.rating] }}</span>
+<div class="st">{{'★'*r.rating}}<i>{{'★'*(5-r.rating)}}</i></div><p>{{ r.text or 'Loved it!' }}</p><small><b>{{r.cname}}</b><span>{{r.cn}}</span></small></div>{% endfor %}{% endfor %}</div>{% endfor %}
+</div>
+{% else %}<div class="rw"><div class="rw-empty">No reviews yet. Be the first to say something nice 💛</div></div>{% endif %}

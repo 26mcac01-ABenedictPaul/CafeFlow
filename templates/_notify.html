@@ -1,0 +1,16 @@
+<dialog id="bigpop" class="bigpop"><span class="em" id="bpem">🔔</span><h2 id="bptitle" style="margin:.2em 0"></h2><p id="bptext" class="mut"></p>
+<form method="dialog"><button class="btn mint">Okay</button></form></dialog>
+<script>
+(function(){
+ const EMOJI={ready:'🍽️',accepted:'👨‍🍳',rejected:'😞',order:'🛎️',booking:'🪑',info:'🔔',review:'⭐'};
+ let ctx;function beep(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();[880,1175].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;o.connect(g);g.connect(ctx.destination);g.gain.setValueAtTime(.12,ctx.currentTime+i*.18);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+i*.18+.3);o.start(ctx.currentTime+i*.18);o.stop(ctx.currentTime+i*.18+.32)})}catch(e){}}
+ function show(n){
+  const box=document.getElementById('toasts'),d=document.createElement('div');d.className='toast '+n.kind;
+  d.innerHTML='<b>'+(EMOJI[n.kind]||'🔔')+' '+n.title+'</b><small>'+n.text+' &middot; '+n.t+'</small>';box.prepend(d);setTimeout(()=>d.remove(),9000);beep();
+  if(n.kind==='ready'&&!window.CF_NOBIG){document.getElementById('bpem').textContent='🍽️';document.getElementById('bptitle').textContent=n.title;document.getElementById('bptext').textContent=n.text;const p=document.getElementById('bigpop');if(!p.open)p.showModal()}
+  if(window.CF_RELOAD&&['order','accepted','ready','rejected'].includes(n.kind))setTimeout(()=>location.reload(),2200);
+ }
+ async function poll(){try{const r=await fetch('/api/notices',{cache:'no-store'});if(r.ok)(await r.json()).forEach(show)}catch(e){}}
+ setInterval(poll,4000);window.CF_beep=beep;
+})();
+</script>
