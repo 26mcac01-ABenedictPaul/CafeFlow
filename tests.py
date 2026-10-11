@@ -82,6 +82,16 @@ class Chatbot(unittest.TestCase):
         self.assertIn("READY", reply("where is my order", c)["text"]); self.assertEqual(reply("plan a birthday party", c)["links"][0]["url"], "/party")
         self.assertEqual(reply("non veg please", c)["items"][0]["name"], "Chicken Roll"); self.assertTrue(reply("asdf qwerty", c)["chips"])
 
+class StaffBot(unittest.TestCase):
+    def test_staff(self):
+        from chatbot import staff_reply
+        v = {"pending": 2, "preparing": 1, "ready": 0, "today_n": 3, "today_rev": 250, "total_n": 9, "total_rev": 1200, "top": [("Samosa", 5)], "soldout": ["Tea"], "rating": 4.5, "nreviews": 2, "latest": "Nice", "parties": []}
+        self.assertIn("2 order(s) waiting", staff_reply("pending orders", "vendor", v)["text"]); self.assertIn("Rs 250", staff_reply("today's sales", "vendor", v)["text"])
+        self.assertIn("Tea", staff_reply("sold out items", "vendor", v)["text"]); self.assertIn("Samosa", staff_reply("top dishes", "vendor", v)["text"]); self.assertTrue(staff_reply("hello", "vendor", v)["chips"])
+        a = {**v, "users_n": 4, "counters": [{"label": "Slurrpp (F1)", "rev": 900, "orders": 5}], "by_counter": {"slurrpp": {"label": "Slurrpp (F1)", "rev": 900, "orders": 5, "pending": 1, "rating": 4, "reviews": 1}}, "parties_n": 3, "parties_up": 2}
+        self.assertIn("Rs 1,200", staff_reply("total revenue", "admin", a)["text"]); self.assertIn("Slurrpp", staff_reply("top counter", "admin", a)["text"]); self.assertIn("900", staff_reply("how is slurrpp doing", "admin", a)["text"])
+        self.assertIn("4 student", staff_reply("how many users", "admin", a)["text"])
+
 class Website(unittest.TestCase):                                 # real pages, using a throw-away copy of the data
     @classmethod
     def setUpClass(cls):
@@ -103,6 +113,10 @@ class Website(unittest.TestCase):                                 # real pages, 
         a = c.post("/api/chat/add", json={"iid": j["items"][0]["id"]}).get_json(); self.assertTrue(a["ok"] or "Your cart has items from" in a["msg"], a)     # same one-counter rule as the cart
         self.assertIn("cbFab", c.get("/home").get_data(as_text=True))
         self.assertEqual(self.app.app.test_client().post("/api/chat", json={"text": "hi"}).status_code, 401)
+        for who, pw in (("campusfeast", "feast123"), ("admin", "admin123")):                                                   # counter and admin get the bot too
+            x = self.app.app.test_client(); x.post("/login", data={"name": who, "password": pw}); self.assertIn("cbFab", x.get("/vendor/dashboard" if who != "admin" else "/admin").get_data(as_text=True))
+            j = x.post("/api/chat", json={"text": "today's sales"}).get_json(); self.assertIn("Today", j["text"]); self.assertEqual(x.post("/api/chat", json={"text": "hello"}).get_json()["chips"][0] in ("Pending orders", "Today's sales"), True)
+            self.assertTrue(x.post("/api/chat", json={"text": "pending orders"}).get_json()["text"]); self.assertTrue(x.post("/api/chat", json={"text": "how are reviews"}).get_json()["text"])
         # review flow: place an order, review it, check counter + admin got it
         it = self.app.menu.search("counter", "kf"); c.post("/add", data={"iid": it["id"], "qty": 1, "back": "/cart"})
         r = c.post("/pay", data={"method": "cod"}); oid = int(r.headers["Location"].split("/order/")[1].split("?")[0])

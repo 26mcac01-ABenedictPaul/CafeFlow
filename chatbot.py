@@ -130,3 +130,64 @@ def reply(text, ctx):
         out["text"] = (f"Dishes under Rs {cap}:" if cap else "The cheapest dishes right now:") if lst else "Nothing matches that budget."; out["items"] = card(lst[:6]); return out
 
     out["text"] = "I did not catch that 🤔 Try asking about a dish (\"price of samosa\"), \"cheapest dishes\", \"plan my meal for Rs 120\", \"where is my order\" or \"plan a birthday party\"."; out["chips"] = CHIPS; return out
+
+
+# ======================================================================== staff assistants (counter and admin)
+STAFF_CHIPS = {"vendor": ["Pending orders", "Today's sales", "Top dishes", "Sold out items", "My rating", "Upcoming parties"],
+               "admin": ["Today's sales", "Total revenue", "Top counter", "Pending orders", "How are reviews?", "Upcoming parties"]}
+
+
+def staff_reply(text, role, ctx):
+    """role 'vendor' (one counter) or 'admin' (whole canteen). ctx holds numbers worked out by the website (see api_chat)."""
+    t = text.strip()[:200]; out = {"text": "", "items": [], "links": [], "chips": []}; money = lambda n: f"Rs {int(n):,}"
+    link = lambda label, url: out["links"].append({"label": label, "url": url})
+    home = "/vendor/dashboard" if role == "vendor" else "/admin"
+    if not t: out["text"] = "Ask me about orders, sales, top dishes or reviews."; out["chips"] = STAFF_CHIPS[role]; return out
+
+    if role == "admin":                                      # a counter named in the question: show that counter
+        for name, c in ctx["by_counter"].items():
+            if name in t.lower():
+                out["text"] = f"{c['label']}: {c['orders']} orders, {money(c['rev'])} revenue, {c['pending']} waiting now, rating {c['rating'] or 'n/a'} ({c['reviews']} reviews)."; return out
+
+    if has(t, "hi", "hello", "hey", "hii", "help", "start", "who are you"):
+        out["text"] = "Hi! I'm the CafeFlow assistant 🤖 " + ("I can tell you about this counter's orders, sales, sold-out dishes, reviews and parties." if role == "vendor" else "I can summarise orders, revenue, counters, customers, reviews and parties for the whole canteen.")
+        out["chips"] = STAFF_CHIPS[role]; return out
+    if has(t, "thanks", "thank you", "thx", "bye"): out["text"] = "Anytime! 😊"; return out
+
+    if has(t, "pending", "waiting", "queue", "new order", "new orders", "to accept", "orders now", "live", "active"):
+        if role == "vendor":
+            out["text"] = f"{ctx['pending']} order(s) waiting to be accepted, {ctx['preparing']} being prepared, {ctx['ready']} ready for pickup."; link("Open orders", "/vendor/orders")
+        else:
+            out["text"] = f"{ctx['pending']} order(s) are waiting at counters right now, {ctx['preparing']} being prepared and {ctx['ready']} ready."; link("All orders", "/admin/orders")
+        return out
+    if has(t, "today", "sales", "sale", "earn", "earnings", "income", "turnover") and not has(t, "total"):
+        out["text"] = f"Today: {ctx['today_n']} order(s) and {money(ctx['today_rev'])}." + (f" Overall: {ctx['total_n']} orders, {money(ctx['total_rev'])}." if ctx.get("total_n") else ""); link("Dashboard", home); return out
+    if has(t, "revenue", "total", "money", "profit", "income", "overall", "all time"):
+        out["text"] = f"Total revenue so far: {money(ctx['total_rev'])} from {ctx['total_n']} orders (rejected orders are not counted)."; link("Dashboard", home); return out
+    if role == "admin" and has(t, "counter", "counters", "rank", "ranking", "leaderboard", "which counter", "best counter"):
+        c = ctx["counters"]; out["text"] = ("Counters by revenue:\n" + "\n".join(f"{i + 1}. {x['label']}: {money(x['rev'])} ({x['orders']} orders)" for i, x in enumerate(c[:6]))) if c else "No counter sales yet."; link("Behaviour & ranking", "/admin/behaviour"); return out
+    if has(t, "top", "best", "popular", "bestseller", "bestsellers", "selling", "favourite", "dishes", "dish"):
+        out["text"] = ("Top dishes: " + ", ".join(f"{n} ({q})" for n, q in ctx["top"][:6])) if ctx["top"] else "No sales yet, so there are no top dishes. Sample data can be loaded from the dashboard."; return out
+    if role == "admin" and has(t, "user", "users", "customer", "customers", "students", "registered", "signups"):
+        out["text"] = f"{ctx['users_n']} student account(s) registered."; link("Customers", "/admin/users"); return out
+    if role == "vendor" and has(t, "sold out", "stock", "unavailable", "out of stock", "soldout", "availability", "available"):
+        out["text"] = ("Marked sold out right now: " + ", ".join(ctx["soldout"])) if ctx["soldout"] else "Everything on your menu is available."; link("Manage menu", "/vendor/menu"); return out
+    if has(t, "review", "reviews", "rating", "ratings", "feedback", "stars"):
+        out["text"] = (f"Average rating {ctx['rating']} ★ from {ctx['nreviews']} review(s)." + (f' Latest: "{ctx["latest"]}"' if ctx.get("latest") else "")) if ctx["nreviews"] else "No reviews yet."; link("Reviews", "/vendor/reviews" if role == "vendor" else "/admin/reviews"); return out
+    if has(t, "party", "parties", "birthday", "celebration"):
+        if role == "vendor":
+            out["text"] = ("Upcoming parties for your counter:\n" + "\n".join(f"• {p['star']}: {p['when']}, {p['guests']} guests" for p in ctx["parties"][:5])) if ctx["parties"] else "No birthday parties booked for your counter yet."; link("Birthday parties", "/vendor/parties")
+        else:
+            out["text"] = f"{ctx['parties_up']} upcoming birthday part{'y' if ctx['parties_up'] == 1 else 'ies'} ({ctx['parties_n']} booked in total)."; link("Birthday parties", "/admin/parties")
+        return out
+    if has(t, "offer", "offers", "discount", "ad", "ads", "promotion"):
+        out["text"] = ("You can add discounts, buy-one-get-one and combos from Offers. They appear as ads on the student home page." if role == "admin" else "Offers are created by the admin and appear as ads for your dishes."); link("Offers", "/admin/offers") if role == "admin" else None; return out
+    if has(t, "how", "accept", "reject", "ready", "collect", "mark", "price", "menu", "add dish", "change"):
+        if role == "vendor":
+            out["text"] = "Orders: open Orders, tap Accept (set prep time), then Mark ready, then Collected. Reject needs a reason. Menu: use Manage menu to change prices, mark a dish sold out or add a new dish."; link("Orders", "/vendor/orders"); link("Manage menu", "/vendor/menu")
+        else:
+            out["text"] = "Use the left menu: Orders, Customers, Payments, Behaviour, Reviews, Basket analysis, Offers, Authority and Birthday parties. Algorithm demos are in the Lab."; link("Admin home", "/admin")
+        return out
+    if has(t, "pay", "payment", "payments", "upi", "cash"):
+        out["text"] = "Payments (UPI and cash) are listed with transaction IDs on the Payments page."; link("Payments", "/vendor/payments" if role == "vendor" else "/admin/payments"); return out
+    out["text"] = "I did not catch that 🤔 Try \"pending orders\", \"today's sales\", \"top dishes\" or \"how are reviews?\"."; out["chips"] = STAFF_CHIPS[role]; return out

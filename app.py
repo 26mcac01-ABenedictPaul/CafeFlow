@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ds import LinkedList, Stack, Queue, BST, Graph, balanced, eval_postfix
 from ds import linear_search, binary_search, insertion_sort, merge_sort
 from mining import apriori
-from chatbot import reply as bot_reply
+from chatbot import reply as bot_reply, staff_reply
 from algos import make_change, budget_knapsack, seat_groups, balance_stations
 try:
     from reportlab.lib.pagesizes import A5
@@ -1094,11 +1094,38 @@ def vendor_parties():
     return render_template("v_parties.html", v=v, ps=ps, page="parties", lead=PARTY_LEAD)
 
 # ---------------- built-in chatbot (free, no outside service) ----------------
+def staff_stats(floor=None, key=None):                       # numbers the counter / admin assistant talks about
+    ok = [o for o in orders.traverse() if not o.get("demo") and o["status"] != "Rejected" and (floor is None or (o["floor"] == floor and o["counter"] == key))]
+    live = [o for o in orders.traverse() if not o.get("demo") and (floor is None or (o["floor"] == floor and o["counter"] == key))]
+    td = [o for o in ok if datetime.fromtimestamp(o.get("ts", 0)).date() == date.today()]
+    rs = [r for r in reviews.traverse() if floor is None or (r["floor"] == floor and r["counter"] == key)]
+    last, _ = merge_sort([r for r in rs if r.get("text")], lambda r: r.get("ts", 0), True)
+    sold = Counter()
+    for o in ok:
+        for l in o["lines"]: sold[l["name"]] += l["qty"]
+    return {"pending": sum(o["status"] == "Pending" for o in live), "preparing": sum(o["status"] == "Accepted" for o in live), "ready": sum(o["status"] == "Ready" for o in live),
+            "today_n": len(td), "today_rev": sum(o["total"] for o in td), "total_n": len(ok), "total_rev": sum(o["total"] for o in ok), "top": sold.most_common(6),
+            "rating": avg_rating(rs), "nreviews": len(rs), "latest": last[0]["text"][:80] if last else ""}
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    u = me()
-    if not u: return jsonify({"text": "Please log in to chat.", "items": [], "links": [], "chips": []}), 401
-    fl = session.get("floor", 1); text = str((request.get_json(silent=True) or {}).get("text", ""))
+    u = me(); v = vendor(); text = str((request.get_json(silent=True) or {}).get("text", ""))
+    if not u and not v and not session.get("admin"): return jsonify({"text": "Please log in to chat.", "items": [], "links": [], "chips": []}), 401
+    if v:                                                    # counter assistant
+        ctx = staff_stats(v["floor"], v["key"])
+        ctx["soldout"] = [i["name"] for i in fmenu(v["floor"]) if i["counter"] == v["key"] and not i.get("avail", True)]
+        ctx["parties"] = [{"star": p["star"], "when": f"{party_when(p):%d %b}, {pretty_time(p['time'])}", "guests": p["guests"]} for p in parties.traverse() if p["floor"] == v["floor"] and v["key"] in p["by"] and p["status"] == "confirmed"]
+        return jsonify(staff_reply(text, "vendor", ctx))
+    if not u:                                                # admin assistant
+        ctx = staff_stats(); ctx["users_n"] = sum(1 for _ in users.traverse()); ctx["by_counter"], rows = {}, []
+        for f in FLOORS:
+            for k in COUNTERS:
+                st = staff_stats(f, k); row = {"label": counter_label(f, k), "rev": st["total_rev"], "orders": st["total_n"], "pending": st["pending"], "rating": st["rating"], "reviews": st["nreviews"]}
+                rows.append(row); ctx["by_counter"][cname(f, k).lower()] = row if cname(f, k).lower() not in ctx["by_counter"] else ctx["by_counter"][cname(f, k).lower()]
+        ctx["counters"], _ = merge_sort(rows, lambda r: r["rev"], True)
+        ctx["parties_n"] = sum(1 for p in parties.traverse() if p["status"] != "cancelled"); ctx["parties_up"] = sum(1 for p in parties.traverse() if p["status"] == "confirmed")
+        return jsonify(staff_reply(text, "admin", ctx))
+    fl = session.get("floor", 1)                             # student assistant
     items = [i for i in fmenu(fl) if i.get("avail", True)]
     sold = Counter()
     for k in COUNTERS:
@@ -1106,7 +1133,7 @@ def api_chat():
     best = sold.most_common(8)
     offs = []
     for o in offers.traverse():
-        if o["active"] and o["floor"] == fl: v = offer_view(o); offs.append(f"{v['head']} at {v['counter']}: {v['sub']}")
+        if o["active"] and o["floor"] == fl: ov = offer_view(o); offs.append(f"{ov['head']} at {ov['counter']}: {ov['sub']}")
     mine = [o for o in reversed(list(orders.traverse())) if o["uid"] == u["id"] and not o.get("demo")]
     ctx = {"items": items, "cname": lambda k: cname(fl, k), "orders": mine, "offers": offs, "sold": sold, "best": best, "floor": fl, "pure_veg": pure(fl)}
     return jsonify(bot_reply(text, ctx))

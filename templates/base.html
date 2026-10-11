@@ -206,4 +206,4 @@ dialog::backdrop{background:rgba(27,31,59,.55)}dialog h2{margin-top:0}dialog li{
 <li><b>Array</b> holds the seating units (tables and sofas) of a floor for the seat plan.</li>
 <li><b>Queue</b>: each counter on each floor has its own queue of pending orders (6 queues), oldest first.</li>
 <li><b>Stack</b> keeps the admin activity log and evaluates the bill expression.</li></ul>{% endblock %}</div>
-<form method="dialog"><button class="btn">Got it</button></form></dialog>{% endif %}{% if user or vendor or is_admin %}{% include "_notify.html" %}{% endif %}{% if user %}{% include "_chatbot.html" %}{% endif %}</body></html>
+<form method="dialog"><button class="btn">Got it</button></form></dialog>{% endif %}{% if user or vendor or is_admin %}{% include "_notify.html" %}{% endif %}{% if user or vendor or is_admin %}{% include "_chatbot.html" %}{% endif %}</body></html>
