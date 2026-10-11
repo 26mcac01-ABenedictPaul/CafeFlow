@@ -64,6 +64,24 @@ class Phase4(unittest.TestCase):
         self.assertIsNone(seat_groups([6, 6, 6], [("T1", 6), ("T2", 6)])[0])
         self.assertIsNone(seat_groups([5], [("S1", 4)])[0])
 
+class Chatbot(unittest.TestCase):
+    def ctx(self):
+        its = [{"id": 1, "name": "Samosa", "price": 20, "emoji": "x", "counter": "kf", "veg": True}, {"id": 2, "name": "Masala Dosa", "price": 60, "emoji": "x", "counter": "kf", "veg": True},
+               {"id": 3, "name": "Chicken Roll", "price": 80, "emoji": "x", "counter": "roll", "veg": False}, {"id": 4, "name": "Tea", "price": 10, "emoji": "x", "counter": "brew", "veg": True}]
+        from collections import Counter
+        return {"items": its, "cname": lambda k: k, "orders": [{"id": 7, "status": "Ready", "counter": "kf", "eta": None}], "offers": [], "sold": Counter({"Samosa": 5}), "best": [("Samosa", 5)], "floor": 2, "pure_veg": False}
+    def test_intents(self):
+        from chatbot import reply
+        c = self.ctx()
+        self.assertIn("Rs 20", reply("what is the price of samosa?", c)["text"]); self.assertEqual(reply("price of samosa", c)["items"][0]["id"], 1)          # BST exact match
+        self.assertEqual(reply("masala dosa", c)["items"][0]["id"], 2)
+        self.assertIn("363", reply("change for 500 bill 137", c)["text"])                                                                                      # greedy
+        r = reply("plan my meal for Rs 100", c); self.assertTrue(r["items"]); self.assertLessEqual(sum(i["price"] for i in r["items"]), 100)               # DP
+        self.assertEqual([i["price"] for i in reply("cheapest dishes", c)["items"]], [10, 20, 60, 80])                                                      # merge sort
+        self.assertEqual([i["name"] for i in reply("anything under 30", c)["items"]], ["Tea", "Samosa"])
+        self.assertIn("READY", reply("where is my order", c)["text"]); self.assertEqual(reply("plan a birthday party", c)["links"][0]["url"], "/party")
+        self.assertEqual(reply("non veg please", c)["items"][0]["name"], "Chicken Roll"); self.assertTrue(reply("asdf qwerty", c)["chips"])
+
 class Website(unittest.TestCase):                                 # real pages, using a throw-away copy of the data
     @classmethod
     def setUpClass(cls):
@@ -81,6 +99,10 @@ class Website(unittest.TestCase):                                 # real pages, 
         r = c.get("/solve?c=kf&budget=150").get_data(as_text=True); self.assertIn("Best meal for Rs 150", r)
         ids = self.app.menu.search("counter", "kf")["id"]
         c.post("/solve/cart", data={"iid": [ids]}); self.assertIn("Your cart", c.get("/cart").get_data(as_text=True))
+        j = c.post("/api/chat", json={"text": "price of samosa"}).get_json(); self.assertTrue(j["items"] and "Rs" in j["text"])
+        a = c.post("/api/chat/add", json={"iid": j["items"][0]["id"]}).get_json(); self.assertTrue(a["ok"] or "Your cart has items from" in a["msg"], a)     # same one-counter rule as the cart
+        self.assertIn("cbFab", c.get("/home").get_data(as_text=True))
+        self.assertEqual(self.app.app.test_client().post("/api/chat", json={"text": "hi"}).status_code, 401)
         # review flow: place an order, review it, check counter + admin got it
         it = self.app.menu.search("counter", "kf"); c.post("/add", data={"iid": it["id"], "qty": 1, "back": "/cart"})
         r = c.post("/pay", data={"method": "cod"}); oid = int(r.headers["Location"].split("/order/")[1].split("?")[0])

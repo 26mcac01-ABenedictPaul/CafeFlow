@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ds import LinkedList, Stack, Queue, BST, Graph, balanced, eval_postfix
 from ds import linear_search, binary_search, insertion_sort, merge_sort
 from mining import apriori
+from chatbot import reply as bot_reply
 from algos import make_change, budget_knapsack, seat_groups, balance_stations
 try:
     from reportlab.lib.pagesizes import A5
@@ -1091,6 +1092,41 @@ def vendor_parties():
             m = party_view(p); m["mine"] = [l for l in p["lines"] if l["counter"] == v["key"]]; m["amount"] = p["by"][v["key"]]["total"]; ps.append(m)
     ps, _ = merge_sort(ps, lambda m: (m["p"]["date"], m["p"]["time"]))
     return render_template("v_parties.html", v=v, ps=ps, page="parties", lead=PARTY_LEAD)
+
+# ---------------- built-in chatbot (free, no outside service) ----------------
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    u = me()
+    if not u: return jsonify({"text": "Please log in to chat.", "items": [], "links": [], "chips": []}), 401
+    fl = session.get("floor", 1); text = str((request.get_json(silent=True) or {}).get("text", ""))
+    items = [i for i in fmenu(fl) if i.get("avail", True)]
+    sold = Counter()
+    for k in COUNTERS:
+        for name, qty in bestsellers(fl, k): sold[name] += qty
+    best = sold.most_common(8)
+    offs = []
+    for o in offers.traverse():
+        if o["active"] and o["floor"] == fl: v = offer_view(o); offs.append(f"{v['head']} at {v['counter']}: {v['sub']}")
+    mine = [o for o in reversed(list(orders.traverse())) if o["uid"] == u["id"] and not o.get("demo")]
+    ctx = {"items": items, "cname": lambda k: cname(fl, k), "orders": mine, "offers": offs, "sold": sold, "best": best, "floor": fl, "pure_veg": pure(fl)}
+    return jsonify(bot_reply(text, ctx))
+
+@app.route("/api/chat/add", methods=["POST"])
+def api_chat_add():                                          # "Add" button inside the chat; same one-counter rule as the cart page
+    u = me()
+    if not u: return jsonify({"ok": False, "msg": "Please log in."}), 401
+    try: iid = int((request.get_json(silent=True) or {}).get("iid"))
+    except (TypeError, ValueError): return jsonify({"ok": False, "msg": "Unknown dish."})
+    it = menu.search("id", iid)
+    if not it: return jsonify({"ok": False, "msg": "Unknown dish."})
+    if not it.get("avail", True): return jsonify({"ok": False, "msg": f"{it['name']} is sold out right now."})
+    c = carts.get(u["id"])
+    if c and (c["counter"] != it["counter"] or c["floor"] != it["floor"]): return jsonify({"ok": False, "msg": f"Your cart has items from {cname(c['floor'], c['counter'])}. Place that order or clear the cart first."})
+    if not c: c = carts[u["id"]] = {"floor": it["floor"], "counter": it["counter"], "items": LinkedList()}
+    line = c["items"].search("iid", it["id"])
+    if line: line["qty"] = min(line["qty"] + 1, 20)
+    else: c["items"].insert({"iid": it["id"], "qty": 1})
+    save(); return jsonify({"ok": True, "msg": f"Added {it['name']} to your cart."})
 
 # ---------------- Phase 4 pages: greedy, dynamic programming, backtracking ----------------
 def popularity(floor, key):                                  # units sold per dish at one counter (used as the "value" of a dish)

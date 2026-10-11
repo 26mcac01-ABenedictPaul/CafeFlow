@@ -11,6 +11,7 @@ A full-stack canteen ordering and management web app built with **Flask**, where
 - 🪑 Book a table or sofa on a floor map with time slots; 📅 pre-order meals for coming days
 - 🎂 **Plan a Birthday Party**: pre-book tables, cakes, pastries, fries and chips with tiered discounts (up to 25%)
 - ⭐ Cute review pop-up after every order, an animated review wall, and Instagram-style **Stories** of bestsellers and offers
+- 🤖 **CafeFlow Assistant**: a free chatbot built into the app (bottom-right bubble). It answers about dishes and prices, offers, your order status, tables, pre-orders and parties, and can add dishes to your cart. It reuses the project's own algorithms: BST for dish lookup, merge sort for cheapest lists, knapsack DP for "plan my meal for Rs 150" and greedy for "change for 500, bill 137" (`chatbot.py`)
 - 🔐 "Remember me" login, password autofill, show/hide password
 
 **For counters (vendors)**: order queue, menu and stock control, sales charts, payments, reviews and party prep lists.
@@ -52,6 +53,7 @@ These are demo credentials for a class project. Change them in `VENDOR_LOGINS` a
     ds.py         Linked list, stack, queue, BST, graph, searches and sorts
     algos.py      Greedy, dynamic programming, backtracking
     mining.py     Apriori basket analysis
+    chatbot.py    Rule-based assistant (BST, merge sort, DP, greedy)
     templates/    Jinja pages (student, counter and admin)
     static/       CSS, JS and images
     tests.py      Automated tests for every phase and main pages
