@@ -20,6 +20,14 @@
 .cbc button{border:1.5px solid #ffb89c;background:#fff4ee;border-radius:99px;padding:5px 12px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}.cbc button:hover{background:#ffe3d6}
 .cbf{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:#fff}.cbf input{flex:1;margin:0;border-radius:99px;padding:10px 14px}.cbf button{border:0;border-radius:50%;width:42px;height:42px;background:var(--ink);color:#fff;font-size:1.1rem;cursor:pointer}
 .cbt{align-self:flex-start;color:var(--mut);font-size:.85rem}
+@media(max-width:700px){
+#cbFab{width:58px;height:58px;right:12px;bottom:14px}#cbFab .rb{width:38px;height:38px}
+body:has(.cartbar) #cbFab{bottom:80px}
+#cbHey{right:78px;bottom:26px;padding:8px 12px;font-size:.9rem}body:has(.cartbar) #cbHey{bottom:92px}
+#cbWin{left:8px;right:8px;width:auto;bottom:82px;height:calc(100vh - 150px);height:calc(100dvh - 150px);max-height:580px;border-radius:20px}
+body:has(.cartbar) #cbWin{bottom:148px;height:calc(100vh - 215px);height:calc(100dvh - 215px)}
+.cbf input{font-size:16px}.cbm{max-width:92%}
+}
 </style>
 {% set crole = 'admin' if is_admin else ('vendor' if vendor else 'student') %}
 <div id="cbHey" aria-hidden="true">Hey! Chat with me 👋<i></i></div>
