@@ -82,6 +82,20 @@ class Chatbot(unittest.TestCase):
         self.assertIn("READY", reply("where is my order", c)["text"]); self.assertEqual(reply("plan a birthday party", c)["links"][0]["url"], "/party")
         self.assertEqual(reply("non veg please", c)["items"][0]["name"], "Chicken Roll"); self.assertTrue(reply("asdf qwerty", c)["chips"])
 
+    def test_dsa_lessons(self):                                   # the assistant teaches every concept of the 4 phases
+        from chatbot import reply, staff_reply
+        c = self.ctx()
+        topics = {"explain linked list": "Linked list", "what is a stack": "Stack", "what is a queue": "Queue", "explain postfix": "Postfix", "explain the tree": "Binary tree",
+                  "explain BST": "Binary search tree", "explain bfs and dfs": "BFS", "explain binary search": "Binary search", "explain linear search": "Linear search",
+                  "explain insertion sort": "Insertion sort", "explain merge sort": "Merge sort", "explain greedy": "Greedy", "explain dynamic programming": "Dynamic programming",
+                  "what is backtracking": "Backtracking"}
+        for q, word in topics.items(): self.assertIn(word, reply(q, c)["text"], q)
+        for n in (1, 2, 3, 4): self.assertIn(f"Phase {n}", reply(f"explain phase {n}", c)["text"])
+        self.assertIn("all four DSA phases", reply("explain the DSA concepts", c)["text"]); self.assertTrue(reply("explain BST", c)["chips"])
+        self.assertIn("compared", reply("linear vs binary search", c)["text"])
+        self.assertIn("363", reply("change for 500 bill 137", c)["text"]); self.assertEqual(reply("price of samosa", c)["items"][0]["id"], 1)         # normal questions are untouched
+        self.assertEqual(staff_reply("explain merge sort", "admin", {})["links"][0]["url"], "/admin/lab"); self.assertEqual(staff_reply("what is a queue", "vendor", {})["links"][0]["url"], "/vendor/lab")
+
 class StaffBot(unittest.TestCase):
     def test_staff(self):
         from chatbot import staff_reply
