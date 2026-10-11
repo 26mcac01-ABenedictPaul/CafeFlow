@@ -1,17 +1,61 @@
-# CafeFlow (merged build)
+# ☕ CafeFlow: Smart Canteen Management
 
-Merge of `cafebackup` and `cafeflow_final` into one project.
+A full-stack canteen ordering and management web app built with **Flask**, where every feature is powered by **data structures and algorithms written from scratch** (no built-in sort, search or queue libraries for the core logic). Students order food, pre-book tables and plan birthday parties; counters run their kitchens; the admin watches the whole canteen.
 
-## Run
+> Course project covering all four phases: linear structures, trees and graphs, searching and sorting, and greedy / dynamic programming / backtracking.
+
+## ✨ Features
+**For students**
+- Browse two floors (veg-only and mixed), search dishes, add to cart, pay with UPI QR or cash, get a till-roll bill (HTML and PDF)
+- 🔔 Live order tracking with pop-up alerts when an order is accepted, ready or collected
+- 🪑 Book a table or sofa on a floor map with time slots; 📅 pre-order meals for coming days
+- 🎂 **Plan a Birthday Party**: pre-book tables, cakes, pastries, fries and chips with tiered discounts (up to 25%)
+- ⭐ Cute review pop-up after every order, an animated review wall, and Instagram-style **Stories** of bestsellers and offers
+- 🔐 "Remember me" login, password autofill, show/hide password
+
+**For counters (vendors)**: order queue, menu and stock control, sales charts, payments, reviews and party prep lists.
+**For the admin**: overview, customers, payments, behaviour analytics, reviews, basket analysis (Apriori), offers and ads, authority controls, birthday party report.
+
+## 🧠 Data structures and algorithms (by phase)
+| Phase | Topic | Where it is used |
+|---|---|---|
+| 1 | Linked list, stack, queue | Linked lists store users, menu, carts, orders and bookings. A queue per counter holds pending orders. A stack keeps the admin activity log and checks bill expressions. |
+| 2 | Binary tree, BST, graph | BST dish search with in/pre/post-order animation (and where a searched dish falls in each order). Canteen graph with adjacency list and matrix, BFS and DFS routes. |
+| 3 | Searching and sorting | Linear and binary search, insertion sort and merge sort race with comparison counts; sorting used inside menus, reports and rankings. |
+| 4 | Greedy, DP, backtracking | Greedy change-maker for cash orders, 0/1 knapsack budget meal planner, backtracking seat allocator for groups and birthday parties. |
+
+Also: Apriori association rules for "bought together" analysis. The app has a live checklist at `/phases` and an interactive lab at `/algo`, `/tree`, `/map` and `/solve`.
+
+## 🛠 Tech stack
+Python 3, Flask, Jinja2, vanilla JavaScript, SVG animations, ReportLab (PDF bills), Segno (UPI QR codes), JSON file storage (`data.json`).
+
+## ▶️ Run locally
     pip install -r requirements.txt
     python app.py          # open http://127.0.0.1:5000
+    python tests.py        # runs the automated tests for every phase
 
-## Logins
-- Admin: `admin` / `admin123` (overview, orders, customers, payments, behaviour, reviews, basket analysis, offers, authority)
-- Counters (each sees only its own orders, menu, sales and payments):
-  Floor 1: `campusfeast` / `feast123` | `zamorin1` / `zamorin123` | `slurrpp` / `slurrpp123`
-  Floor 2: `annaprada` / `anna123` | `zamorin2` / `zamorin456` | `delhibite` / `delhi123`
-- Students: register on the login page. The account already in data.json is kept.
+## 🔑 Demo logins
+- Admin: `admin` / `admin123`
+- Counters, Floor 1: `campusfeast` / `feast123`, `zamorin1` / `zamorin123`, `slurrpp` / `slurrpp123`
+- Counters, Floor 2: `annaprada` / `anna123`, `zamorin2` / `zamorin456`, `delhibite` / `delhi123`
+- Students: register on the login page.
+
+These are demo credentials for a class project. Change them in `VENDOR_LOGINS` and `ADMIN_PASS` (top of `app.py`) before any real use.
+
+## ☁️ Deploy on Render
+- Build command: `pip install -r requirements.txt`
+- Start command: `gunicorn app:app --workers 1 --threads 4 --timeout 120`
+- Keep a single worker: data lives in memory and is saved to `data.json`. On Render's free plan the file system resets on redeploy.
+
+## 📁 Project structure
+    app.py        Flask routes and app logic
+    ds.py         Linked list, stack, queue, BST, graph, searches and sorts
+    algos.py      Greedy, dynamic programming, backtracking
+    mining.py     Apriori basket analysis
+    templates/    Jinja pages (student, counter and admin)
+    static/       CSS, JS and images
+    tests.py      Automated tests for every phase and main pages
+    data.json     Seed data (menu, users, orders)
 
 ## Settings (top of app.py)
 | Setting | Default | Meaning |
