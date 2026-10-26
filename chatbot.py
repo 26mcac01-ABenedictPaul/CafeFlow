@@ -15,7 +15,7 @@ STOP = set("""a an the is are am i me my we you your do does did can could would
 please pls want need like order price prices cost costs much how what whats which where when who it its this that there here today now item items food menu available avail rs rupees
 veg non nonveg vegetarian cheap cheapest under below less than upto budget buy eat serve serving sell selling much many""".split())
 
-CHIPS = ["What's popular?", "Cheapest dishes", "Plan my meal for Rs 150", "Where is my order?", "Plan a birthday party", "Today's offers", "Explain the DSA concepts"]
+CHIPS = ["What's popular?", "Cheapest dishes", "Plan my meal for Rs 150", "Where is my order?", "Plan a birthday party", "Today's offers", "Explain stack", "Explain queue", "Explain linked list"]
 
 
 def words(t): return re.findall(r"[a-z0-9']+", t.lower())
@@ -62,8 +62,8 @@ DSA_TOPICS = {
               ("All 4 phases in the project", "/phases"), ["Explain phase 1", "Explain phase 2", "Explain phase 3", "Explain phase 4"]),
  "phase1": (_t("Phase 1: Linear data structures (CLO1)",
                "• Linked list: stores users, menu items, carts, orders and bookings",
-               "• Stack: the admin activity log, plus the bracket check and postfix for the bill",
-               "• Queue: one pending-order queue for every counter",
+               "• Stack: cart Undo, the admin activity log, and the bracket check + postfix for the bill",
+               "• Queue: one pending-order queue per counter, with 'orders ahead of you' on your order page",
                "Which one should I explain?"),
             ("See Phase 1 in the project", "/phases"), ["Explain linked list", "Explain stack", "Explain queue", "Explain postfix"]),
  "phase2": (_t("Phase 2: Trees and graphs (CLO2)",
@@ -88,23 +88,36 @@ DSA_TOPICS = {
             ("See Phase 4 in the project", "/phases"), ["Explain greedy", "Explain dynamic programming", "Explain backtracking", "Explain apriori"]),
 
  "linked_list": (_t("Linked list (Phase 1)",
-                    "A chain of nodes. Each node holds a record and a pointer to the next node; the first node is the head.",
-                    "• Insert: walk to the last node and link the new one",
-                    "• Delete: find the node and make the one before it skip over it",
-                    "• Search and traverse: follow the pointers one by one",
-                    "In CafeFlow: users, menu items, orders, bookings, parties, reviews and every cart are linked lists (ds.py).",
-                    "Speed: insert, search and delete are O(n), because we walk the chain."),
-                 ("See Phase 1", "/phases"), ["Explain stack", "Explain queue"]),
+                    "A chain of nodes. Each node = data + a pointer (next) to the following node. The first node is the head, the last one points to None.",
+                    "• Insert at the end: walk to the last node, then last.next = new node (O(n))",
+                    "• Insert at the front: new.next = head, head = new (O(1)), the Undo in your cart uses this",
+                    "• Delete: find the node, then make the one before it skip over it (prev.next = cur.next)",
+                    "• Search / traverse: follow the pointers one by one (O(n)). Reverse: flip every pointer with prev, cur, nxt.",
+                    "Tiny trace, cart = Samosa → Tea: add Maggi ⇒ walk Samosa, Tea (last) ⇒ Tea.next = Maggi ⇒ Samosa → Tea → Maggi → None. Remove Tea ⇒ Samosa.next = Maggi.",
+                    "In CafeFlow: users, menu, orders, bookings, parties, reviews and every student's cart are linked lists (ds.py). Open the Linear lab to watch the pointers move."),
+                 ("Watch the linked list animation", "/linear#ll"), ["Explain stack", "Explain queue", "How does undo work?"]),
  "stack": (_t("Stack (Phase 1)",
-              "Last in, first out (LIFO), like a pile of plates. Push adds on top, pop removes the top, peek looks at the top.",
-              "In CafeFlow: the admin activity log (newest action on top), and the bracket check and postfix calculation for the bill. DFS on the canteen map works the same way.",
-              "Speed: push and pop are O(1)."),
-           ("See the bill on the cart", "/cart"), ["Explain queue", "Explain postfix"]),
+              "Last in, first out (LIFO), like a pile of plates. push puts a node on top, pop removes the top, peek just looks at it. All O(1).",
+              "Tiny trace: push Tea, push Samosa, push Maggi ⇒ top is Maggi. pop ⇒ Maggi leaves first, then Samosa, then Tea.",
+              "Where CafeFlow uses it:",
+              "• Cart Undo: every dish you remove is pushed on your undo stack; Undo pops the latest one back into the cart",
+              "• Bill: a stack checks the brackets of (60*2)+(40*1) and then evaluates the postfix form to get the total",
+              "• Admin activity log: newest action on top",
+              "• DFS on the canteen map keeps its path on a stack"),
+           ("Watch the stack animation", "/linear#stack"), ["Explain queue", "Explain postfix", "How does undo work?"]),
  "queue": (_t("Queue (Phase 1)",
-              "First in, first out (FIFO), like the line at a counter. Enqueue adds at the rear, dequeue removes from the front.",
-              "In CafeFlow: every counter has its own queue of pending orders (one per counter on each floor), so the oldest order is handled first. BFS on the canteen map also uses a queue.",
-              "Speed: enqueue and dequeue are O(1)."),
-           ("See your orders", "/orders"), ["Explain stack", "Explain linked list"]),
+              "First in, first out (FIFO), like the line at a counter. enqueue adds at the rear, dequeue removes from the front, peek looks at the front. All O(1) with a front and a rear pointer.",
+              "Tiny trace: orders #101, #102, #103 arrive ⇒ front #101, rear #103. The counter accepts #101 (dequeue) ⇒ front is now #102.",
+              "Where CafeFlow uses it:",
+              "• Every counter has its own queue of pending orders. A counter can only accept or decline the order at the FRONT",
+              "• Your order page and my bot tell you how many orders are ahead of you (queue position)",
+              "• Pre-orders and party orders join the same queue when they are released",
+              "• BFS on the canteen map uses a queue to explore level by level"),
+           ("Watch the queue animation", "/linear#queue"), ["Explain stack", "Explain linked list", "How many orders are ahead of me?"]),
+ "undo": (_t("Cart Undo: a stack in action",
+             "When you press Remove in the cart, the dish is pushed on your personal undo stack and deleted from the cart's linked list.",
+             "Undo last removal pops the top of the stack and puts that dish back at the front of the linked list. Remove 3 dishes, press Undo 3 times: they come back in reverse order (LIFO)."),
+          ("Open my cart", "/cart"), ["Explain stack", "Explain linked list"]),
  "expression": (_t("Expression handling (Phase 1)",
                    "A stack checks the bill expression, for example (60*2)+(40*1).",
                    "• Balanced brackets: push on '(' and pop on ')'. If nothing is left on the stack at the end, the brackets match.",
@@ -188,9 +201,10 @@ DSA_STRONG = [
  ("bst", ["bst", "binary search tree"]),
  ("graph", ["bfs", "dfs", "adjacency", "breadth first", "depth first"]),
  ("tree", ["binary tree", "inorder", "preorder", "postorder", "in order traversal", "pre order traversal", "post order traversal", "traversal", "traversals"]),
- ("linked_list", ["linked list", "linked lists", "linkedlist"]),
- ("stack", ["stack", "stacks", "lifo"]),
- ("queue", ["fifo"]),
+ ("undo", ["undo", "how does undo work"]),
+ ("linked_list", ["linked list", "linked lists", "linkedlist", "singly linked", "head node", "next pointer"]),
+ ("stack", ["stack", "stacks", "lifo", "push", "pop", "peek", "stack overflow", "underflow"]),
+ ("queue", ["fifo", "enqueue", "dequeue", "front and rear"]),
  ("expression", ["postfix", "infix", "balanced brackets", "parentheses"]),
  ("greedy", ["greedy", "coin change", "making change", "make change"]),
  ("dp", ["dynamic programming", "dynamic", "knapsack", "memoization", "dp"]),
@@ -267,6 +281,14 @@ def reply(text, ctx):
             out["text"] = f"Best meal for Rs {b} at {cn(k)}: {len(ch)} dish(es) for Rs {sp}, picked with dynamic programming (most popular value for your money)."; out["items"] = card(ch)
         else: out["text"] = f"Nothing fits Rs {b} right now. Try a bit more."
         out["links"] = [{"label": "Open the full meal planner", "url": "/solve#dp"}]; return out
+
+    # ---- queue position (a real QUEUE lookup)
+    if has(t, "ahead of me", "my position", "my turn", "in the queue", "in queue", "in line", "queue position", "how long will", "how many orders"):
+        pend = [o for o in ctx["orders"] if o["status"] == "Pending"]
+        if not pend: out["text"] = "None of your orders is waiting in a queue right now. Once you place one, I can tell you how many orders are ahead of you."; out["chips"] = ["Explain queue"]; return out
+        o = pend[0]; a = ctx.get("ahead", {}).get(o["id"])
+        out["text"] = (f"Order #{o['id']} is at the FRONT of the {cn(o['counter'])} queue. The counter will see it next." if a == 0 else f"{a} order(s) are ahead of your order #{o['id']} at {cn(o['counter'])}. The counter serves the queue first come, first served.") + " (I looked at the counter's queue with the position() method.)"
+        out["links"] = [{"label": "Open order #%d" % o["id"], "url": f"/order/{o['id']}"}, {"label": "Watch the queue animation", "url": "/linear#queue"}]; return out
 
     # ---- my order
     if has(t, "my order", "order status", "track", "where is my", "is my order", "ready yet", "status"):

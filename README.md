@@ -121,3 +121,12 @@ Always the first ad in **Offers for you** on the student home page, and a header
 - **Pay:** UPI QR or cash on collection. Confirmation notifies the admin and each counter involved, emails the customer, and creates a party bill (HTML and PDF).
 - **Fulfilment:** 2 hours before the party the order is split into a normal order for each counter (with the candles and the cake message as lines). Customers can copy an invite text, view the bill or cancel (tables are released, UPI is flagged for refund).
 - **Admin:** sidebar **Birthday parties** (all parties, value, discounts, tables). **Counter:** sidebar **Birthday parties** (upcoming items to prepare).
+
+## Linear lab: linked list, stack, queue (new)
+Header tab **Linear lab** (`/linear`): step-by-step animations of the real `ds.py` code with the running line highlighted.
+- **Linked list**: insert at end / front, delete, search, reverse, with `next` pointers drawn and moved. Your **cart** is this list.
+- **Stack**: push / pop / peek, plus the **bill demo** (bracket check, then postfix evaluation, token by token).
+- **Queue**: enqueue / dequeue with FRONT and REAR tags, and the counter rule "only the front order can be accepted".
+- **Live in CafeFlow**: your real cart list, your undo stack and the counter queues holding your orders.
+Real use in the app: cart **Undo last removal** (stack of removed dishes, `/cart/undo`), **"N orders ahead of you"** on the order page (`Queue.position`), new `LinkedList.insert_front / insert_at / length / reverse`.
+The assistant now explains linked list, stack, queue and undo with traces, and answers "how many orders are ahead of me?".

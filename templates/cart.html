@@ -4,7 +4,9 @@
 <div class="card"><table><tr><th></th><th>Item</th><th>Price</th><th>Qty</th><th>Amount</th><th></th></tr>
 {% for l in lines %}<tr><td>{{l.emoji}}</td><td>{{l.name}}</td><td>{{l.price}}</td><td>{{l.qty}}</td><td>Rs {{l.sub}}</td><td><a href="/cart/remove/{{l.iid}}">Remove</a></td></tr>{% endfor %}
 {% if disc %}<tr><td colspan="4" class="mut">Subtotal</td><td colspan="2">Rs {{subtotal}}</td></tr>{% for d in disc %}<tr class="save-row"><td>🏷️</td><td colspan="3">{{d.label}}</td><td colspan="2">- Rs {{d.amount}}</td></tr>{% endfor %}{% endif %}
-<tr><th colspan="4">Total</th><th colspan="2">Rs {{total}}</th></tr></table>{% if disc %}<p class="up" style="margin:8px 0 0">You are saving Rs {{subtotal-total}} with offers!</p>{% endif %}<p class="mut">Bill calculated with a stack: {{expr}}</p></div>
+<tr><th colspan="4">Total</th><th colspan="2">Rs {{total}}</th></tr></table>{% if disc %}<p class="up" style="margin:8px 0 0">You are saving Rs {{subtotal-total}} with offers!</p>{% endif %}<p class="mut">Bill calculated with a stack: {{expr}}</p>
+{% if undo %}<p class="mut">↩ Undo stack (top first): {% for n in undo %}<b>{{n}}</b>{{' → ' if not loop.last}}{% endfor %} &nbsp;<a class="btn ghost sm" href="/cart/undo">Undo last removal</a></p>{% endif %}
+<p class="mut"><a href="/linear">See how the linked list (your cart), stack (undo, bill) and queue (counter) work, animated →</a></p></div>
 <form method="post" action="/pay" class="card" id="payform"><h2 style="margin-top:0">Payment</h2>
 <div class="pay-grid two">
 <label class="pay"><input type="radio" name="method" value="upi" checked><span class="plogos">{{logo('gpay')}}{{logo('phonepe')}}{{logo('paytm')}}</span><span>Scan &amp; pay with UPI</span><small class="mut">Google Pay, PhonePe, Paytm or any UPI app</small></label>

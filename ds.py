@@ -35,6 +35,25 @@ class LinkedList:                 # stores users, menu items, orders
             yield cur.data
             cur = cur.next
 
+    def insert_front(self, data): # new node becomes the head: O(1), no walking needed
+        node = Node(data); node.next = self.head; self.head = node
+
+    def insert_at(self, index, data):   # put the new node at position index (0 = head)
+        if index <= 0 or not self.head: return self.insert_front(data)
+        cur = self.head
+        while index > 1 and cur.next: cur, index = cur.next, index - 1
+        node = Node(data); node.next = cur.next; cur.next = node
+
+    def length(self):             # count nodes by walking the chain: O(n)
+        n, cur = 0, self.head
+        while cur: n, cur = n + 1, cur.next
+        return n
+
+    def reverse(self):            # flip every pointer: prev <- cur, three pointers walk the chain
+        prev, cur = None, self.head
+        while cur: nxt = cur.next; cur.next = prev; prev, cur = cur, nxt
+        self.head = prev
+
 class Stack:                      # LIFO - last in, first out (admin activity log)
     def __init__(self): self.top = None
     def push(self, data):
@@ -44,6 +63,10 @@ class Stack:                      # LIFO - last in, first out (admin activity lo
         data = self.top.data; self.top = self.top.next; return data
     def peek(self): return self.top.data if self.top else None
     def empty(self): return self.top is None
+    def size(self):
+        n, cur = 0, self.top
+        while cur: n, cur = n + 1, cur.next
+        return n
     def items(self):
         cur = self.top
         while cur: yield cur.data; cur = cur.next
@@ -61,6 +84,17 @@ class Queue:                      # FIFO - first in, first out (pending orders)
         if not self.front: self.rear = None
         return data
     def peek(self): return self.front.data if self.front else None
+    def empty(self): return self.front is None
+    def size(self):
+        n, cur = 0, self.front
+        while cur: n, cur = n + 1, cur.next
+        return n
+    def position(self, key, value):             # 0 = at the front (being served next), 1 = one order ahead, ... or None if not in the queue
+        i, cur = 0, self.front
+        while cur:
+            if cur.data[key] == value: return i
+            i, cur = i + 1, cur.next
+        return None
     def items(self):
         cur = self.front
         while cur: yield cur.data; cur = cur.next

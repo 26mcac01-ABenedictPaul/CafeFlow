@@ -86,6 +86,7 @@ preorders = LinkedList()                                    # meal plans: a chos
 offers, reviews = LinkedList(), LinkedList()                 # admin offers (discount / combo / BOGO / popular) and customer reviews
 carts = {}                                                   # user id -> {"floor","counter","items": LinkedList}
 queues = {f"{f}-{k}": Queue() for f in FLOORS for k in COUNTERS}   # 6 queues: one per counter per floor
+undo_stacks = {}                                             # user id -> Stack of cart lines they removed (LIFO: Undo brings back the latest removal)
 history = Stack()                                            # admin activity log, newest on top
 count = {"user": 0, "item": 0, "order": 0, "book": 0, "notice": 0, "offer": 0, "review": 0, "plan": 0, "party": 0}
 bsts = {}                                                    # Phase 2: one BST of food items per floor, keyed by name
@@ -531,16 +532,35 @@ def cart():
     if not u: return redirect("/")
     c = carts.get(u["id"])
     lines, expr, total, disc = make_bill(c["items"], c["floor"], c["counter"]) if c else ([], "", 0, [])
-    return render_template("cart.html", lines=lines, expr=expr, total=total, disc=disc, subtotal=sum(l["sub"] for l in lines), c=c, qr=qr_svg(total) if lines else None, upi_vpa=UPI_MERCHANT["vpa"], cn=cname(c["floor"], c["counter"]) if c else "")
+    st = undo_stacks.get(u["id"]); un = [menu.search("id", e["line"]["iid"])["name"] for e in st.items() if menu.search("id", e["line"]["iid"])] if st else []
+    return render_template("cart.html", undo=un, lines=lines, expr=expr, total=total, disc=disc, subtotal=sum(l["sub"] for l in lines), c=c, qr=qr_svg(total) if lines else None, upi_vpa=UPI_MERCHANT["vpa"], cn=cname(c["floor"], c["counter"]) if c else "")
 
 @app.route("/cart/remove/<int:iid>")
 def remove(iid):
     u = me(); c = carts.get(u["id"]) if u else None
     if c:
-        c["items"].delete("iid", iid)
+        line = c["items"].search("iid", iid)
+        if line:
+            undo_stacks.setdefault(u["id"], Stack()).push({"floor": c["floor"], "counter": c["counter"], "line": dict(line)})    # stack: remember what was removed
+            c["items"].delete("iid", iid)
         if c["items"].head is None: del carts[u["id"]]
         save()
     return redirect("/cart")
+
+@app.route("/cart/undo")
+def cart_undo():                                             # STACK pop: the most recently removed dish comes back (insert_front keeps its place near the top)
+    u = me()
+    if not u: return redirect("/")
+    st = undo_stacks.get(u["id"]); top = st.peek() if st else None
+    if not top: flash("Nothing to undo."); return redirect("/cart")
+    c = carts.get(u["id"])
+    if c and (c["floor"], c["counter"]) != (top["floor"], top["counter"]): flash("Your cart is now from another counter, so that dish cannot be restored."); return redirect("/cart")
+    st.pop()
+    if not c: c = carts[u["id"]] = {"floor": top["floor"], "counter": top["counter"], "items": LinkedList()}
+    back = c["items"].search("iid", top["line"]["iid"])
+    if back: back["qty"] += top["line"]["qty"]
+    else: c["items"].insert_front(top["line"])
+    save(); flash("Brought back: " + str(menu.search("id", top["line"]["iid"])["name"])); return redirect("/cart")
 
 @app.route("/cart/clear")
 def clear():
@@ -649,9 +669,12 @@ def mine_or_404(oid):
     if not u or not o or o["uid"] != u["id"]: abort(404)
     return o
 
+def queue_ahead(o):                                          # QUEUE position: how many orders are in front of this one at its counter (None once it left the queue)
+    return queues[f"{o['floor']}-{o['counter']}"].position("id", o["id"]) if o["status"] == "Pending" else None
+
 def order_state(o):
     left = max(0, int(o["eta_end"] - time.time())) if o.get("eta_end") and o["status"] == "Accepted" else 0
-    return {"id": o["id"], "status": o["status"], "eta": o.get("eta"), "left": left, "reason": o.get("reason", ""), "counter": cname(o["floor"], o["counter"]), "floor": o["floor"]}
+    return {"id": o["id"], "status": o["status"], "ahead": queue_ahead(o), "eta": o.get("eta"), "left": left, "reason": o.get("reason", ""), "counter": cname(o["floor"], o["counter"]), "floor": o["floor"]}
 
 @app.route("/order/<int:oid>")
 def order_page(oid):
@@ -900,6 +923,23 @@ def cancel(bid):
         notify("admin", f"Booking cancelled: {b['unit']}, Floor {b['floor']}", f"{u['name']} cancelled {b['date']} {pretty_time(b['start'])}", "booking"); flash("Booking cancelled.")
     return redirect("/reserve")
 # ---------------- Phase 3 page: search and sort lab ----------------
+@app.route("/linear")
+def linear_lab():                                            # Phase 1 lab: animated linked list, stack and queue + the LIVE structures of this student
+    u = me()
+    if not u: return redirect("/")
+    c = carts.get(u["id"]); cart_nodes = []
+    if c:
+        for l in c["items"].traverse():
+            it = menu.search("id", l["iid"])
+            if it: cart_nodes.append(f"{it['name']} x{l['qty']}")
+    st = undo_stacks.get(u["id"]); undo = [menu.search("id", e["line"]["iid"])["name"] for e in st.items() if menu.search("id", e["line"]["iid"])] if st else []
+    qs = []
+    for k, q in queues.items():                              # every counter queue that currently holds this student's order
+        row = [(o["id"], o["uid"] == u["id"]) for o in q.items()]
+        if any(m for _, m in row): f, ck = k.split("-"); qs.append({"counter": cname(int(f), ck), "floor": int(f), "orders": [{"id": i, "mine": m} for i, m in row]})
+    names = [i["name"] for i in fmenu(session.get("floor", 1))][:14]
+    return render_template("linear.html", live={"cart": cart_nodes, "undo": undo, "queues": qs}, names=names, page="/linear")
+
 @app.route("/algo")
 def algo():
     if not me(): return redirect("/")
@@ -1135,7 +1175,7 @@ def api_chat():
     for o in offers.traverse():
         if o["active"] and o["floor"] == fl: ov = offer_view(o); offs.append(f"{ov['head']} at {ov['counter']}: {ov['sub']}")
     mine = [o for o in reversed(list(orders.traverse())) if o["uid"] == u["id"] and not o.get("demo")]
-    ctx = {"items": items, "cname": lambda k: cname(fl, k), "orders": mine, "offers": offs, "sold": sold, "best": best, "floor": fl, "pure_veg": pure(fl)}
+    ctx = {"ahead": {o["id"]: queue_ahead(o) for o in mine if o["status"] == "Pending"}, "items": items, "cname": lambda k: cname(fl, k), "orders": mine, "offers": offs, "sold": sold, "best": best, "floor": fl, "pure_veg": pure(fl)}
     return jsonify(bot_reply(text, ctx))
 
 @app.route("/api/chat/add", methods=["POST"])
@@ -1241,7 +1281,7 @@ def solve_seats():                                           # book the backtrac
 
 PHASES = [
  (1, "Linear data structures", "CLO1", [("Linked list stores users, menu, carts, orders, bookings (insert, delete, search, traverse)", "ds.py / every page", "/home"),
-   ("Stack: admin activity log and bill expression (balanced brackets + postfix)", "ds.py", "/cart"), ("Queue: one pending-order queue per counter", "ds.py / vendor", "/orders")]),
+   ("Stack: admin activity log and bill expression (balanced brackets + postfix)", "ds.py", "/cart"), ("Queue: one pending-order queue per counter; students see how many orders are ahead of them", "ds.py / vendor", "/linear#queue"), ("Animated Linear lab: linked list, stack and queue step by step", "templates/linear.html", "/linear"), ("Cart Undo = stack of removed dishes", "app.py cart_undo", "/cart")]),
  (2, "Trees and graphs", "CLO2", [("Binary search tree: dish search with the search path shown", "ds.py", "/search?q=tea"), ("In, pre and post order traversals", "ds.py", "/tree"),
    ("Graph: adjacency list and matrix of the canteen", "ds.py", "/map"), ("BFS (queue) and DFS (stack) routes", "ds.py", "/map")]),
  (3, "Searching and sorting", "CLO2", [("Linear and binary search, with comparison counts", "ds.py", "/algo"), ("Insertion sort and merge sort race", "ds.py", "/algo"),

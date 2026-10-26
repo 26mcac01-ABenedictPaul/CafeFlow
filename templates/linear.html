@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Linear data structures, step by step</h2><ul>
+<li><b>Linked list</b>: nodes joined by <code>next</code> pointers. Insert at the front is O(1); insert at the end, search and delete need a walk, O(n). CafeFlow keeps users, menu, orders and every <b>cart</b> in linked lists.</li>
+<li><b>Stack</b> (LIFO): push and pop at the <b>top</b>. CafeFlow uses it for the bill (bracket check and postfix), the cart <b>Undo</b> and the admin activity log.</li>
+<li><b>Queue</b> (FIFO): enqueue at the <b>rear</b>, dequeue at the <b>front</b>. Every counter has one queue of pending orders, and a counter can only accept the order at the front.</li>
+<li>Pick a tab, press a button and watch each pointer move. The code panel highlights the exact line of <code>ds.py</code> that is running.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.lt{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.lt button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer}.lt button.on{background:#1b1f3b;color:#fff;border-color:#1b1f3b}
+.sec2{display:none}.sec2.on{display:block}
+.lab{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}@media(max-width:900px){.lab{grid-template-columns:1fr}}
+.stage{min-height:190px;display:flex;align-items:center;gap:0;overflow-x:auto;padding:34px 8px 26px;position:relative}
+.vstage{min-height:330px;display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-start;gap:6px;padding:14px;border-left:4px solid #1b1f3b;border-right:4px solid #1b1f3b;border-bottom:4px solid #1b1f3b;border-radius:0 0 16px 16px;width:230px;margin:0 auto;position:relative}
+.nd{display:flex;align-items:stretch;border:2px solid #1b1f3b;border-radius:10px;background:#fff;min-width:118px;transition:all .3s;position:relative;flex:none;animation:pop .35s}
+.nd .d{padding:8px 10px;font-weight:700;font-size:.82rem;flex:1;text-align:center}.nd .n{width:26px;background:#eef0fa;border-left:2px solid #1b1f3b;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--mut)}
+.nd.cur{background:#ffb703;transform:translateY(-8px) scale(1.06);box-shadow:0 6px 14px #0003}.nd.hit{background:#7be0b8}.nd.bad{background:#ffb3b3;opacity:.6}.nd.new{background:#c9f0ff}
+.ar{flex:none;width:34px;height:2px;background:#1b1f3b;position:relative;transition:all .3s}.ar:after{content:"";position:absolute;right:-1px;top:-4px;border-left:8px solid #1b1f3b;border-top:5px solid transparent;border-bottom:5px solid transparent}
+.ar.skip{background:#ff6b35;height:4px}.ar.null{background:none;width:auto;font-size:.75rem;color:var(--mut);padding:0 8px}.ar.null:after{display:none}
+.tag{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:.7rem;font-weight:800;background:#1b1f3b;color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.tag.b{top:auto;bottom:-24px;background:#ff6b35}
+.vnd{width:190px;border:2px solid #1b1f3b;border-radius:10px;background:#fff;padding:9px;text-align:center;font-weight:700;font-size:.85rem;position:relative;animation:drop .4s}.vnd.top{background:#ffe08a}.vnd.pop{animation:out .4s forwards}
+.vnd .tag{left:auto;right:-62px;top:50%;transform:translateY(-50%)}
+@keyframes pop{from{opacity:0;transform:scale(.4)}to{opacity:1}}@keyframes drop{from{opacity:0;transform:translateY(-70px)}to{opacity:1}}@keyframes out{to{opacity:0;transform:translateY(-80px)}}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.ctl select,.ctl input{margin:0;width:auto;min-width:120px}
+.say{background:#fff8e1;border-left:5px solid #ffb703;border-radius:10px;padding:10px 14px;min-height:46px;font-weight:600}
+.code{background:#1b1f3b;color:#cfd5ff;border-radius:12px;padding:12px 0;font:12.5px/1.55 ui-monospace,Menlo,monospace;overflow:auto}.code div{padding:0 14px;white-space:pre}.code div.on{background:#ffb70355;color:#fff}
+.stat{display:flex;gap:18px;flex-wrap:wrap;color:var(--mut)}.stat b{color:var(--ink);font-size:1.05rem}
+.tokens{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.tk{padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-family:ui-monospace,monospace}.tk.cur{background:#ffb703}.tk.done{opacity:.35}
+.hq{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.hq .o{padding:6px 12px;border-radius:999px;background:#eef0fa;font-weight:700}.hq .o.me{background:#ffb703}
+.live{background:#f3fbf8;border:1.5px dashed #12a37f}
+</style>
+<div class="pagehead"><h1>Linear lab</h1><p class="mut">Linked list, stack and queue animated on CafeFlow's real code (<code>ds.py</code>), and where each one runs inside the app.</p></div>
+<div class="lt"><button data-t="ll" class="on">🔗 Linked list</button><button data-t="stack">🥞 Stack</button><button data-t="queue">🚶 Queue</button><button data-t="live">📡 Live in CafeFlow</button></div>
+
+<!-- ============ LINKED LIST ============ -->
+<div class="sec2 on" id="t-ll"><div class="lab"><div>
+<div class="card"><div class="stage" id="llStage"></div>
+<div class="ctl"><select id="llDish"></select><button class="btn sm" id="llEnd">Insert at end</button><button class="btn sm sun" id="llFront">Insert at front</button><button class="btn sm ghost" id="llDel">Delete this dish</button><button class="btn sm ghost" id="llSearch">Search this dish</button><button class="btn sm ghost" id="llRev">Reverse</button><button class="btn sm ghost" id="llReset">Reset</button></div>
+<div class="say" id="llSay">Pick a dish and press a button. Each node holds a record and a pointer to the next node.</div>
+<div class="stat" style="margin-top:8px"><span>Length <b id="llLen">0</b></span><span>Pointer steps <b id="llSteps">0</b></span></div></div>
+<p class="mut">In CafeFlow a student's <b>cart</b> is exactly this: adding a dish is <code>insert</code> (end), removing is <code>delete</code>, and <b>Undo</b> uses <code>insert_front</code>.</p></div>
+<div><div class="code" id="llCode"></div></div></div></div>
+
+<!-- ============ STACK ============ -->
+<div class="sec2" id="t-stack"><div class="lab"><div>
+<div class="card"><div class="vstage" id="stStage"></div>
+<div class="ctl"><select id="stDish"></select><button class="btn sm" id="stPush">Push</button><button class="btn sm sun" id="stPop">Pop</button><button class="btn sm ghost" id="stPeek">Peek</button><button class="btn sm ghost" id="stReset">Reset</button></div>
+<div class="say" id="stSay">Stack is empty. Push a dish: it always lands on the TOP, and pop always removes the top (LIFO).</div>
+<div class="stat" style="margin-top:8px"><span>Size <b id="stLen">0</b></span><span>Top <b id="stTop">None</b></span></div></div>
+<div class="card"><h3 style="margin-top:0">Bill demo: how CafeFlow checks and calculates your bill with a stack</h3>
+<div class="ctl"><input id="exIn" value="(60*2)+(40*1)" style="min-width:210px"><button class="btn sm" id="exBr">1. Check brackets</button><button class="btn sm sun" id="exPf">2. Evaluate (postfix)</button></div>
+<div class="tokens" id="exTok"></div><div class="say" id="exSay">Brackets: push on "(" and pop on ")". Postfix: push numbers, and at an operator pop two, calculate, push the result.</div></div></div>
+<div><div class="code" id="stCode"></div></div></div></div>
+
+<!-- ============ QUEUE ============ -->
+<div class="sec2" id="t-queue"><div class="lab"><div>
+<div class="card"><div class="stage" id="qStage"></div>
+<div class="ctl"><button class="btn sm" id="qEn">Enqueue (new order arrives)</button><button class="btn sm sun" id="qDe">Dequeue (counter accepts front order)</button><button class="btn sm ghost" id="qBad">Try accepting the 2nd order</button><button class="btn sm ghost" id="qReset">Reset</button></div>
+<div class="say" id="qSay">Orders join at the REAR and leave from the FRONT: first come, first served.</div>
+<div class="stat" style="margin-top:8px"><span>Size <b id="qLen">0</b></span><span>Front <b id="qFront">None</b></span></div></div>
+<p class="mut">This is the real rule in CafeFlow: the counter's Accept/Decline only works for the order at the front. If you try another one it shows "Orders are served first come, first served".</p></div>
+<div><div class="code" id="qCode"></div></div></div></div>
+
+<!-- ============ LIVE ============ -->
+<div class="sec2" id="t-live"><div class="card live"><h3 style="margin-top:0">🛒 Your cart = a linked list</h3>
+<div class="stage" style="min-height:90px;padding:20px 4px" id="lvCart"></div>
+<h3>↩ Your cart Undo = a stack (top first)</h3><div class="hq" id="lvUndo"></div>
+<h3>🚶 Counter queues holding your orders</h3><div id="lvQ"></div>
+<p class="mut" style="margin-bottom:0">Add a dish to the cart, remove one, press Undo, or place an order, then come back here: these panels are the real data structures of the running app.</p></div></div>
+
+<script>
+const NAMES={{names|tojson}},LIVE={{live|tojson}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));let busy=false;const SP=()=>650;
+const $=id=>document.getElementById(id);
+function fillSel(id){$(id).innerHTML=NAMES.map(n=>'<option>'+n+'</option>').join('')}
+['llDish','stDish'].forEach(fillSel);
+function showCode(id,lines){$(id).innerHTML=lines.map((l,i)=>'<div data-i="'+i+'">'+l.replace(/</g,'&lt;')+'</div>').join('')}
+function hl(id,i){document.querySelectorAll('#'+id+' div').forEach(d=>d.classList.toggle('on',+d.dataset.i===i))}
+// ---- tabs
+document.querySelectorAll('.lt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.lt button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.sec2').forEach(s=>s.classList.toggle('on',s.id==='t-'+b.dataset.t));history.replaceState(null,'','#'+b.dataset.t)});
+if(location.hash){const b=document.querySelector('.lt button[data-t="'+location.hash.slice(1)+'"]');if(b)b.click()}
+async function run(fn){if(busy)return;busy=true;document.querySelectorAll('.ctl button').forEach(b=>b.disabled=true);try{await fn()}finally{busy=false;document.querySelectorAll('.ctl button').forEach(b=>b.disabled=false)}}
+
+// ================= LINKED LIST =================
+const LLC=['class Node:  data, next = data, None','def insert(self, data):      # at the end','    node = Node(data)','    if not self.head: self.head = node; return','    cur = self.head','    while cur.next: cur = cur.next      # walk to the last node','    cur.next = node                     # link it','def insert_front(self, data):','    node = Node(data); node.next = self.head; self.head = node','def delete(self, key, value):','    prev, cur = None, self.head','    while cur:','        if cur.data[key] == value:','            if prev: prev.next = cur.next   # skip over it','            else: self.head = cur.next','        prev, cur = cur, cur.next','def reverse(self):','    prev, cur = None, self.head','    while cur: nxt = cur.next; cur.next = prev; prev, cur = cur, nxt','    self.head = prev'];
+showCode('llCode',LLC);
+let LL=[],llSteps=0;
+function llDraw(cls={},tags={}){const s=$('llStage');let h='<span class="ar null" style="padding-left:0">HEAD</span><span class="ar"></span>'.replace('<span class="ar"></span>','<span class="ar" style="width:20px"></span>');
+ if(!LL.length)h='<span class="ar null">head → None</span>';
+ else{LL.forEach((n,i)=>{h+='<div class="nd '+(cls[i]||'')+'"><div class="d">'+n+'</div><div class="n">'+(i===LL.length-1?'∅':'●')+'</div>'+(tags[i]?'<span class="tag'+(tags[i].b?' b':'')+'">'+tags[i].t+'</span>':'')+'</div>';h+=i<LL.length-1?'<span class="ar '+((cls['a'+i])||'')+'"></span>':'<span class="ar" style="width:20px"></span><span class="ar null">None</span>'})}
+ s.innerHTML=h;$('llLen').textContent=LL.length;$('llSteps').textContent=llSteps}
+const say=(id,t)=>$(id).textContent=t;
+$('llEnd').onclick=()=>run(async()=>{const v=$('llDish').value;say('llSay','insert(): create a new node for '+v);hl('llCode',2);await sleep(SP());
+ if(!LL.length){hl('llCode',3);LL.push(v);llDraw({0:'new'},{0:{t:'head'}});say('llSay','List was empty, so the new node becomes the head.');return}
+ for(let i=0;i<LL.length;i++){hl('llCode',5);llSteps++;llDraw({[i]:'cur'},{[i]:{t:'cur'}});say('llSay','cur is at node '+(i+1)+'. '+(i<LL.length-1?'cur.next is not None, move on.':'cur.next is None: this is the last node.'));await sleep(SP())}
+ hl('llCode',6);LL.push(v);llDraw({[LL.length-1]:'new',['a'+(LL.length-2)]:'skip'});say('llSay','Last node\'s next now points to the new node. Cost: n steps, O(n).')});
+$('llFront').onclick=()=>run(async()=>{const v=$('llDish').value;hl('llCode',8);say('llSay','insert_front(): new node, its next = old head, then head = new node. No walking: O(1).');LL.unshift(v);llSteps++;llDraw({0:'new','a0':'skip'},{0:{t:'head'}})});
+$('llDel').onclick=()=>run(async()=>{const v=$('llDish').value;hl('llCode',10);say('llSay','delete(): look for '+v);let at=-1;
+ for(let i=0;i<LL.length;i++){hl('llCode',12);llSteps++;llDraw({[i]:'cur'},{[i]:{t:'cur'},...(i?{[i-1]:{t:'prev',b:1}}:{})});say('llSay','Is '+LL[i]+' equal to '+v+'? '+(LL[i]===v?'Yes!':'No, move prev and cur forward.'));await sleep(SP());if(LL[i]===v){at=i;break}}
+ if(at<0){say('llSay',v+' is not in the list, nothing deleted.');llDraw();return}
+ hl('llCode',at?13:14);if(at&&at<LL.length)llDraw({[at]:'bad',['a'+(at-1)]:'skip'},{[at-1]:{t:'prev',b:1}});say('llSay',at?'prev.next = cur.next: the arrow jumps over the deleted node.':'Deleting the head: head = head.next.');await sleep(SP()*1.4);LL.splice(at,1);llDraw();say('llSay','Deleted '+v+'. The node is no longer reachable.')});
+$('llSearch').onclick=()=>run(async()=>{const v=$('llDish').value;for(let i=0;i<LL.length;i++){hl('llCode',4);llSteps++;llDraw({[i]:LL[i]===v?'hit':'cur'});say('llSay','Checking node '+(i+1)+': '+LL[i]+(LL[i]===v?'  FOUND!':'. Not it, follow the pointer.'));await sleep(SP());if(LL[i]===v)return}say('llSay',v+' not found after '+LL.length+' steps. Search on a linked list is O(n).');llDraw()});
+$('llRev').onclick=()=>run(async()=>{if(LL.length<2){say('llSay','Add at least 2 nodes first.');return}hl('llCode',17);say('llSay','reverse(): walk once and flip every next pointer, using prev, cur and nxt.');await sleep(SP());for(let i=0;i<LL.length;i++){llSteps++;llDraw({[i]:'cur'},{[i]:{t:'cur'}});await sleep(SP()*.6)}LL.reverse();hl('llCode',19);llDraw({},{0:{t:'new head'}});say('llSay','Done: the old tail is the new head. O(n), no extra memory.')});
+$('llReset').onclick=()=>{LL=[];llSteps=0;llDraw();say('llSay','Reset.')};
+['Campus Sambar Vada','Masala Dosa','Filter Coffee'].forEach(()=>{});LL=NAMES.slice(0,3);llDraw();
+
+// ================= STACK =================
+showCode('stCode',['class Stack:  top = None','def push(self, data):','    node = Node(data); node.next = self.top; self.top = node','def pop(self):','    if not self.top: return None          # underflow','    data = self.top.data; self.top = self.top.next; return data','def peek(self): return self.top.data','def balanced(expr):','    s = Stack()','    for ch in expr:','        if ch == "(": s.push(ch)','        elif ch == ")":','            if s.empty(): return False','            s.pop()','    return s.empty()','def eval_postfix(expr):','    for tok in expr.split():','        if tok in "+-*": b, a = s.pop(), s.pop(); s.push(a op b)','        else: s.push(float(tok))','    return s.pop()']);
+let ST=[];
+function stDraw(cls={}){$('stStage').innerHTML=ST.map((n,i)=>'<div class="vnd '+(i===ST.length-1?'top ':'')+(cls[i]||'')+'">'+n+(i===ST.length-1?'<span class="tag">TOP</span>':'')+'</div>').join('')||'<span class="mut" style="margin:auto">empty</span>';$('stLen').textContent=ST.length;$('stTop').textContent=ST.length?ST[ST.length-1]:'None'}
+$('stPush').onclick=()=>run(async()=>{if(ST.length>=6){say('stSay','Stack is full for this demo (6). Pop something first.');return}const v=$('stDish').value;hl('stCode',2);ST.push(v);stDraw();say('stSay','push('+v+'): new node.next = old top, then top = new node. O(1).')});
+$('stPop').onclick=()=>run(async()=>{if(!ST.length){hl('stCode',4);say('stSay','Pop on an empty stack returns None (underflow).');return}hl('stCode',5);const v=ST[ST.length-1];stDraw({[ST.length-1]:'pop'});await sleep(450);ST.pop();stDraw();say('stSay','pop() removed '+v+': the LAST dish pushed is the FIRST one out. This is how Undo in your cart brings back the latest removal.')});
+$('stPeek').onclick=()=>run(async()=>{hl('stCode',6);say('stSay',ST.length?'peek() shows the top: '+ST[ST.length-1]+' (nothing is removed).':'Nothing to peek, the stack is empty.')});
+$('stReset').onclick=()=>{ST=[];stDraw();say('stSay','Reset.')};stDraw();
+// expression demos reuse the stack drawing
+function tokens(arr,i,done){$('exTok').innerHTML=arr.map((t,k)=>'<span class="tk '+(k===i?'cur ':'')+(k<i?'done':'')+'">'+t+'</span>').join('')}
+$('exBr').onclick=()=>run(async()=>{const e=$('exIn').value;const a=[...e];ST=[];let ok=true;
+ for(let i=0;i<a.length;i++){tokens(a,i);const ch=a[i];if(ch==='('){hl('stCode',10);ST.push('(');stDraw();say('exSay','"(" found: push it onto the stack.')}else if(ch===')'){hl('stCode',11);if(!ST.length){hl('stCode',12);say('exSay','")" but the stack is empty: NOT balanced.');ok=false;break}ST.pop();stDraw();say('exSay','")" found: pop the matching "(".')}else say('exSay','"'+ch+'" is not a bracket: skip.');await sleep(420)}
+ tokens(a,a.length);if(ok){hl('stCode',14);say('exSay',ST.length?'Stack still has "(" left: NOT balanced. The bill is rejected.':'Stack is empty at the end: brackets are BALANCED, so the bill is safe to calculate.')}});
+$('exPf').onclick=()=>run(async()=>{const e=$('exIn').value;let pf;
+ const m=e.replace(/\s/g,'').match(/^\(?(\d+)\*(\d+)\)?(?:\+\(?(\d+)\*(\d+)\)?)?$/);
+ if(m){pf=[m[1],m[2],'*'];if(m[3])pf.push(m[3],m[4],'*','+')}else{pf='60 2 * 40 1 * +'.split(' ');say('exSay','I can show one or two (price*qty) terms. Using the default bill: 60 2 * 40 1 * +');await sleep(900)}
+ ST=[];stDraw();for(let i=0;i<pf.length;i++){tokens(pf,i);const t=pf[i];if('+-*'.includes(t)){hl('stCode',17);const b=+ST.pop(),a=+ST.pop();const r=t==='+'?a+b:t==='-'?a-b:a*b;stDraw();say('exSay','Operator '+t+': pop '+b+' and '+a+', calculate '+a+' '+t+' '+b+' = '+r+', push '+r+'.');await sleep(SP());ST.push(r)}else{hl('stCode',18);ST.push(t);say('exSay','Number '+t+': push.')}stDraw();await sleep(SP()*.7)}
+ tokens(pf,pf.length);hl('stCode',19);say('exSay','pop() the last value: the bill total is Rs '+ST[ST.length-1]+'.')});
+
+// ================= QUEUE =================
+showCode('qCode',['class Queue:  front = rear = None','def enqueue(self, data):','    node = Node(data)','    if self.rear: self.rear.next = node   # link after the old rear','    else: self.front = node               # first node','    self.rear = node','def dequeue(self):','    if not self.front: return None','    data = self.front.data; self.front = self.front.next','    if not self.front: self.rear = None','    return data','# counter rule: Accept/Decline only if q.peek()["id"] == order id','def position(self, key, value): ...      # "2 orders ahead of you"']);
+let Q=[],qn=100;
+function qDraw(cls={}){const s=$('qStage');let h='';if(!Q.length)h='<span class="mut" style="margin:auto">queue is empty</span>';else Q.forEach((n,i)=>{h+='<div class="nd '+(cls[i]||'')+'"><div class="d">Order #'+n+'</div><div class="n">'+(i<Q.length-1?'●':'∅')+'</div>'+(i===0?'<span class="tag">FRONT</span>':'')+(i===Q.length-1?'<span class="tag'+(i===0?' b':'')+'" style="'+(i===0?'':'background:#ff6b35')+'">REAR</span>':'')+'</div>'+(i<Q.length-1?'<span class="ar"></span>':'')});s.innerHTML=h;$('qLen').textContent=Q.length;$('qFront').textContent=Q.length?'#'+Q[0]:'None'}
+$('qEn').onclick=()=>run(async()=>{if(Q.length>=7){say('qSay','Queue is long enough for the demo, dequeue some first.');return}hl('qCode',2);Q.push(++qn);qDraw({[Q.length-1]:'new'});hl('qCode',Q.length>1?3:4);say('qSay','enqueue(#'+qn+'): '+(Q.length>1?'old rear.next = new node, then rear = new node.':'first node: front and rear both point to it.')+' O(1), no walking.')});
+$('qDe').onclick=()=>run(async()=>{if(!Q.length){hl('qCode',7);say('qSay','Nothing to serve: the queue is empty.');return}hl('qCode',8);qDraw({0:'hit'});say('qSay','Counter accepts order #'+Q[0]+': it was first in, so it is first out.');await sleep(SP());const x=Q.shift();qDraw();say('qSay','dequeue() returned #'+x+'. front moved to the next node'+(Q.length?' (#'+Q[0]+').':', the queue is now empty so rear = None.'))});
+$('qBad').onclick=()=>run(async()=>{if(Q.length<2){say('qSay','Need at least 2 orders in the queue for this test.');return}hl('qCode',11);qDraw({1:'bad',0:'cur'});say('qSay','Counter tries order #'+Q[1]+' but the front is #'+Q[0]+'. Refused: "Orders are served first come, first served."');await sleep(SP()*1.5);qDraw()});
+$('qReset').onclick=()=>{Q=[];qn=100;qDraw();say('qSay','Reset.')};
+Q=[101,102,103];qn=103;qDraw();
+
+// ================= LIVE =================
+(function(){const c=LIVE.cart;$('lvCart').innerHTML=c.length?'<span class="ar null">head</span><span class="ar" style="width:20px"></span>'+c.map((n,i)=>'<div class="nd"><div class="d">'+n+'</div><div class="n">'+(i<c.length-1?'●':'∅')+'</div></div>'+(i<c.length-1?'<span class="ar"></span>':'<span class="ar" style="width:20px"></span><span class="ar null">None</span>')).join(''):'<span class="mut">Your cart is empty (head → None).</span>';
+ $('lvUndo').innerHTML=LIVE.undo.length?LIVE.undo.map((n,i)=>'<span class="o '+(i===0?'me':'')+'">'+(i===0?'TOP: ':'')+n+'</span>').join(' ↓ '):'<span class="mut">Nothing removed yet. Remove a dish in your cart and it appears here.</span>';
+ $('lvQ').innerHTML=LIVE.queues.length?LIVE.queues.map(q=>'<p><b>'+q.counter+'</b> (Floor '+q.floor+')</p><div class="hq">'+q.orders.map((o,i)=>(i?'→ ':'FRONT ')+'<span class="o '+(o.mine?'me':'')+'">#'+o.id+(o.mine?' (yours, '+i+' ahead)':'')+'</span>').join(' ')+' REAR</div>').join(''):'<span class="mut">No pending order of yours right now. Place an order and it will show here until the counter accepts it.</span>'})();
+</script>
+{% endblock %}

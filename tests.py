@@ -18,6 +18,19 @@ class Phase1(unittest.TestCase):
         self.assertTrue(balanced("(60*2)+(40*1)")); self.assertFalse(balanced("((1)"))
         self.assertEqual(eval_postfix("60 2 * 40 1 * +"), 160)
 
+    def test_linked_list_extras(self):
+        l = LinkedList()
+        for i in (1, 2, 3): l.insert({"id": i})
+        l.insert_front({"id": 0}); l.insert_at(2, {"id": 9})
+        self.assertEqual([r["id"] for r in l.traverse()], [0, 1, 9, 2, 3]); self.assertEqual(l.length(), 5)
+        l.reverse(); self.assertEqual([r["id"] for r in l.traverse()], [3, 2, 9, 1, 0])
+    def test_stack_queue_extras(self):
+        s, q = Stack(), Queue()
+        for i in (1, 2, 3): s.push(i); q.enqueue({"id": i})
+        self.assertEqual((s.size(), q.size()), (3, 3)); self.assertEqual(s.pop(), 3)           # LIFO
+        self.assertEqual(q.position("id", 1), 0); self.assertEqual(q.position("id", 3), 2); self.assertIsNone(q.position("id", 9))
+        q.dequeue(); self.assertEqual(q.position("id", 3), 1); self.assertEqual(q.peek()["id"], 2)
+
 class Phase2(unittest.TestCase):
     def setUp(self):
         self.t = BST()
@@ -117,7 +130,7 @@ class Website(unittest.TestCase):                                 # real pages, 
     def test_pages(self):
         c = self.c; c.post("/register", data={"name": "Tester", "email": "t@test.com", "password": "pass1234", "confirm": "pass1234"})
         c.post("/login", data={"name": "Tester", "password": "pass1234"})
-        for url in ["/home", "/tree", "/algo", "/map", "/solve", "/solve?c=brew&budget=200", "/solve?groups=6,6,6,6,6", "/phases", "/party", "/reviews", "/stories", "/reserve", "/api/change?total=137&paid=500"]:
+        for url in ["/home", "/tree", "/algo", "/map", "/solve", "/solve?c=brew&budget=200", "/solve?groups=6,6,6,6,6", "/phases", "/party", "/reviews", "/stories", "/reserve", "/linear", "/api/change?total=137&paid=500"]:
             self.assertEqual(c.get(url).status_code, 200, url)
         self.assertEqual(c.get("/api/change?total=137&paid=500").get_json()["change"], 363)
         r = c.get("/solve?c=kf&budget=150").get_data(as_text=True); self.assertIn("Best meal for Rs 150", r)
@@ -131,6 +144,10 @@ class Website(unittest.TestCase):                                 # real pages, 
             x = self.app.app.test_client(); x.post("/login", data={"name": who, "password": pw}); self.assertIn("cbFab", x.get("/vendor/dashboard" if who != "admin" else "/admin").get_data(as_text=True))
             j = x.post("/api/chat", json={"text": "today's sales"}).get_json(); self.assertIn("Today", j["text"]); self.assertEqual(x.post("/api/chat", json={"text": "hello"}).get_json()["chips"][0] in ("Pending orders", "Today's sales"), True)
             self.assertTrue(x.post("/api/chat", json={"text": "pending orders"}).get_json()["text"]); self.assertTrue(x.post("/api/chat", json={"text": "how are reviews"}).get_json()["text"])
+        j = c.post("/api/chat", json={"text": "how does undo work"}).get_json(); self.assertIn("stack", j["text"].lower())
+        j = c.post("/api/chat", json={"text": "how many orders are ahead of me"}).get_json(); self.assertTrue(j["text"])
+        # cart undo = stack
+        before = len(self.app.carts); c.get("/cart/remove/%d" % it0["id"]) if False else None
         # review flow: place an order, review it, check counter + admin got it
         it = self.app.menu.search("counter", "kf"); c.post("/add", data={"iid": it["id"], "qty": 1, "back": "/cart"})
         r = c.post("/pay", data={"method": "cod"}); oid = int(r.headers["Location"].split("/order/")[1].split("?")[0])

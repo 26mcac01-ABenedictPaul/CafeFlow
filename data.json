@@ -2009,6 +2009,7 @@
   "offers": [],
   "reviews": [],
   "preorders": [],
+  "parties": [],
   "count": {
     "user": 2,
     "item": 178,
@@ -2017,7 +2018,8 @@
     "notice": 0,
     "offer": 0,
     "review": 0,
-    "plan": 0
+    "plan": 0,
+    "party": 0
   },
   "history": [
     "08 Oct 01:38 - New user registered: A Benedict Paul",
@@ -2028,5 +2030,24 @@
     "08 Oct 10:10 - A Benedict Paul reserved table 4, Floor 1, Breakfast (8-10 am)",
     "11 Oct 11:46 - New user registered: Pre"
   ],
-  "carts": {}
+  "carts": {
+    "1": {
+      "floor": 1,
+      "counter": "kf",
+      "items": [
+        {
+          "iid": 1,
+          "qty": 1
+        },
+        {
+          "iid": 21,
+          "qty": 1
+        },
+        {
+          "iid": 22,
+          "qty": 1
+        }
+      ]
+    }
+  }
 }
