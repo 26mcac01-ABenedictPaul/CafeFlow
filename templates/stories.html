@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Stories</h2><ul><li>Tap a circle to watch. Tap the right side for next, the left for back, hold to pause.</li><li>Stories are built live from best sellers, offers and fresh 5-star reviews.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.ring{display:flex;gap:18px;overflow-x:auto;padding:8px 4px 16px}.rb{flex:none;text-align:center;background:none;border:0;cursor:pointer;font:inherit;width:96px}
+.rb .c{width:84px;height:84px;border-radius:50%;padding:4px;margin:auto;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c1));animation:spin 6s linear infinite}
+.rb .c i{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#fff center/cover;border:3px solid #fff;font-size:2.2rem;font-style:normal;animation:spin 6s linear infinite reverse}
+.rb.seen .c{background:#d6d9e6;animation:none}.rb.seen .c i{animation:none}.rb b{display:block;margin-top:6px;font-size:.85rem;color:var(--ink)}@keyframes spin{to{transform:rotate(360deg)}}
+#sv{border:0;padding:0;background:transparent;width:min(420px,100vw);height:min(760px,100vh);max-height:100vh;max-width:100vw;overflow:visible}#sv::backdrop{background:rgba(10,12,30,.82)}
+.sc{position:relative;width:100%;height:100%;border-radius:24px;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:26px;box-sizing:border-box;background:var(--bg1);transition:background .3s}
+.sc .img{position:absolute;inset:0;background:center/cover;animation:kb 6s ease-out forwards}@keyframes kb{from{transform:scale(1)}to{transform:scale(1.12)}}
+.sc .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 30%,transparent 45%,rgba(0,0,0,.78))}
+.sc .bigem{position:absolute;inset:0;display:grid;place-items:center;font-size:8rem;opacity:.9;animation:bob 2s ease-in-out infinite;padding-bottom:140px}
+.sc .tx{position:relative;animation:up .5s}@keyframes up{from{opacity:0;transform:translateY(22px)}}.sc .tg{display:inline-block;background:rgba(255,255,255,.22);backdrop-filter:blur(6px);border-radius:99px;padding:3px 12px;font-weight:700;font-size:.8rem}
+.sc h2{margin:10px 0 4px;font-size:1.7rem;line-height:1.2}.sc.rv h2{font-size:1.45rem}.sc p{margin:0 0 12px;opacity:.9}
+.bars{position:absolute;top:12px;left:14px;right:14px;display:flex;gap:4px;z-index:3}.bars span{flex:1;height:3.5px;border-radius:9px;background:rgba(255,255,255,.35);overflow:hidden}.bars i{display:block;height:100%;width:0;background:#fff}
+.who{position:absolute;top:26px;left:16px;z-index:3;font-weight:800;display:flex;align-items:center;gap:8px}.x{position:absolute;top:22px;right:14px;z-index:4;background:none;border:0;color:#fff;font-size:1.8rem;cursor:pointer}
+.tap{position:absolute;top:60px;bottom:90px;width:40%;z-index:2}.tap.l{left:0}.tap.r{right:0}.sc form{position:relative;z-index:3}
+</style>
+<div class="pagehead"><h1>Stories</h1><p class="mut">Fresh from the counters on Floor {{floor}}: bestsellers, offers and what people are saying.</p></div>
+<div class="ring">{% for r in rings %}<button class="rb" style="--c1:{{r.c1}};--c2:{{r.c2}}" data-i="{{loop.index0}}"><div class="c"><i {% if r.pic %}style="background-image:url('{{r.pic}}')"{% endif %}>{% if not r.pic %}{{r.emoji}}{% endif %}</i></div><b>{{r.name}}</b></button>{% endfor %}</div>
+<div class="card mut">Tap a circle to start. Each story plays by itself and moves on to the next counter when it ends.</div>
+<dialog id="sv"><div class="sc" id="sc"><div class="bars" id="bars"></div><div class="who" id="who"></div><button class="x" id="sx" aria-label="Close">&times;</button>
+<div class="tap l" id="tl"></div><div class="tap r" id="tr"></div><div id="sbody" style="display:contents"></div></div></dialog>
+<script>
+const R={{rings|tojson}},SV=document.getElementById('sv'),DUR=5000;let ri=0,si=0,t0=0,raf=0,held=false,acc=0;
+const seen=JSON.parse(sessionStorage.getItem('cfseen')||'[]'),btns=document.querySelectorAll('.rb');seen.forEach(i=>btns[i]&&btns[i].classList.add('seen'));
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function draw(){const r=R[ri],s=r.slides[si],sc=document.getElementById('sc');sc.style.setProperty('--bg1','linear-gradient(160deg,'+r.c1+','+r.c2+')');sc.className='sc '+s.kind;
+ document.getElementById('bars').innerHTML=r.slides.map((_,i)=>'<span><i style="width:'+(i<si?100:0)+'%"></i></span>').join('');
+ document.getElementById('who').innerHTML=r.emoji+' '+esc(r.name);
+ document.getElementById('sbody').innerHTML=(s.pic?'<div class="img" style="background-image:url(\''+s.pic+'\')"></div><div class="shade"></div>':'<div class="bigem">'+s.emoji+'</div><div class="shade"></div>')+
+  '<div class="tx"><span class="tg">'+esc(s.tag)+'</span><h2>'+esc(s.title)+'</h2><p>'+esc(s.sub)+'</p>'+(s.iid?'<form method="post" action="/add"><input type="hidden" name="iid" value="'+s.iid+'"><input type="hidden" name="qty" value="1"><input type="hidden" name="back" value="/stories"><button class="btn sun">Add to cart</button></form>':'')+'</div>';
+ acc=0;t0=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+function tick(now){if(!held)acc+=now-t0;t0=now;const p=Math.min(1,acc/DUR),b=document.querySelectorAll('#bars i')[si];if(b)b.style.width=p*100+'%';if(p>=1)return next();raf=requestAnimationFrame(tick)}
+function next(){const r=R[ri];if(si<r.slides.length-1){si++;draw()}else{markSeen();if(ri<R.length-1){ri++;si=0;draw()}else close()}}
+function prev(){if(si>0){si--;draw()}else if(ri>0){ri--;si=0;draw()}else draw()}
+function markSeen(){if(!seen.includes(ri)){seen.push(ri);sessionStorage.setItem('cfseen',JSON.stringify(seen));btns[ri]&&btns[ri].classList.add('seen')}}
+function close(){cancelAnimationFrame(raf);if(SV.open)SV.close()}
+btns.forEach(b=>b.onclick=()=>{ri=+b.dataset.i;si=0;SV.showModal();draw()});
+document.getElementById('tr').onclick=next;document.getElementById('tl').onclick=prev;document.getElementById('sx').onclick=close;SV.addEventListener('close',()=>cancelAnimationFrame(raf));
+['mousedown','touchstart'].forEach(e=>document.getElementById('sc').addEventListener(e,ev=>{if(ev.target.closest('form'))return;held=true}));['mouseup','touchend','mouseleave'].forEach(e=>document.getElementById('sc').addEventListener(e,()=>held=false));
+document.addEventListener('keydown',e=>{if(!SV.open)return;if(e.key==='ArrowRight')next();if(e.key==='ArrowLeft')prev()});
+</script>{% endblock %}

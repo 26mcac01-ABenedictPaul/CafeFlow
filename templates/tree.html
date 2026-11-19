@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Tree implementation</h2><ul>
+<li>Every dish sits in a <b>TreeNode</b> with a <code>left</code> and a <code>right</code> pointer. A tree where each node has at most two children is a <b>binary tree</b>.</li>
+<li>It is a <b>binary search tree</b>: names earlier in the alphabet go left, later ones go right.</li>
+<li><b>Insert:</b> start at the root, go left or right until there is an empty spot, and put the new node there. <b>Search:</b> the same walk, so every step skips about half of the remaining dishes.</li>
+<li><b>Balanced</b> inserts the middle dish first, so the tree stays short (about log2 n levels). <b>Insertion order</b> inserts in menu order, so it can lean to one side and searches take longer. Compare the heights above the tree.</li>
+<li><b>Inorder</b> (Left, Root, Right) gives the menu A to Z. <b>Preorder</b> (Root, Left, Right) lists a parent before its children. <b>Postorder</b> (Left, Right, Root) lists children before their parent.</li>
+<li>Press a traversal button to watch it walk the tree, or search a name to see the path light up.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.tcanvas{overflow:auto;padding:0;background:radial-gradient(circle at 1px 1px,#dde1f0 1px,transparent 0) 0 0/22px 22px,#fff}
+.edge{fill:none;stroke:#c3c9e0;stroke-width:2.4;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .8s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pop{animation:pop .5s cubic-bezier(.2,1.5,.4,1) both;transform-box:fill-box;transform-origin:center}
+@keyframes pop{from{transform:scale(0);opacity:0}}
+.tn{cursor:default}.tn .c{fill:#fff;stroke:#1b1f3b;stroke-width:2;transition:fill .25s,stroke .25s}
+.tn .lb{font-size:10.5px;font-weight:700;fill:#1b1f3b;paint-order:stroke;stroke:#fff;stroke-width:3.5px}
+.tn .badge{fill:#ff6b35;opacity:0;transition:opacity .2s}.tn .num{font-size:10px;font-weight:800;fill:#fff;opacity:0}
+.tn.done .c{fill:#ffe0d2;stroke:#ff6b35}.tn.cur .c{fill:#ffb703;stroke:#ff6b35;animation:ring .7s infinite}
+.tn.done .badge,.tn.done .num,.tn.cur .badge,.tn.cur .num{opacity:1}.tn.found .c{fill:#7be0b8;stroke:#0d7a62}
+@keyframes ring{50%{stroke-width:5}}
+.seq{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:34px}.seq span{background:#fff1e9;border:1px solid #ffd2bd;border-radius:99px;padding:3px 13px;font-size:.88rem;font-weight:600;animation:rise2 .3s}
+@keyframes rise2{from{opacity:0;transform:translateY(8px)}}
+.kpis{display:flex;gap:14px;flex-wrap:wrap}.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 18px}.kpi b{display:block;font-size:1.4rem;line-height:1.1}.kpi span{color:var(--mut);font-size:.82rem}
+.posrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.pos{border:1.5px solid var(--line);border-radius:14px;padding:6px 16px;text-align:center;background:#fff;transition:.2s}.pos small{display:block;color:var(--mut);font-weight:700}.pos b{font-size:1.4rem}.pos span{color:var(--mut);font-size:.8rem;margin-left:4px}.pos.on{border-color:#0d7a62;background:#e6f8f0;box-shadow:0 0 0 3px rgba(18,163,127,.2)}.pos.bst{background:#eaf0ff}
+</style>
+<div class="pagehead"><h1>Menu tree</h1><p class="mut">Every dish is a node in a binary search tree. Watch it get built, searched and traversed.</p></div>
+<div class="chips">{% for k,c in COUNTERS.items() %}<a href="/tree?counter={{k}}&shape={{shape}}" class="{{'on' if k==ck}}">{{c.name}}</a>{% endfor %}<a href="/tree?counter=all&shape={{shape}}" class="{{'on' if ck=='all'}}">All counters</a>
+<span class="mut" style="margin:0 4px 0 12px">Shape:</span><a href="/tree?counter={{ck}}&shape=balanced" class="{{'on' if shape!='plain'}}">Balanced</a><a href="/tree?counter={{ck}}&shape=plain" class="{{'on' if shape=='plain'}}">Insertion order</a></div>
+<div class="kpis"><div class="kpi"><b>{{n}}</b><span>nodes</span></div><div class="kpi"><b>{{height}}</b><span>levels (best possible: {{n.bit_length()}})</span></div><div class="kpi"><b>{{ 'about ' ~ height if n else 0 }}</b><span>steps to find any dish at most</span></div></div>
+<div class="card" style="margin-bottom:10px">
+<form method="get" class="row"><input type="hidden" name="counter" value="{{ck}}"><input type="hidden" name="shape" value="{{shape}}"><input name="q" value="{{q}}" list="tn" placeholder="Search an exact name, for example samosa" style="flex:1;margin:0;min-width:220px"><datalist id="tn">{% for n2 in nodes %}<option value="{{n2.label}}">{% endfor %}</datalist><button class="btn sun">Search the tree</button></form>
+{% if q %}<p class="mut" style="margin:10px 0 0" id="smsg">{% if found %}<b>BST search:</b> found <b>{{found.name}}</b> in {{path|length}} step(s) going down one path from the root (this number stays the same, because a search does not use a traversal order).{% else %}Not found. The search visited {{path|length}} node(s) and reached an empty spot.{% endif %}</p>
+{% if found %}<div id="posbox" style="margin-top:10px"><b>Where does {{found.name}} come in each traversal?</b><div class="posrow">{% for k,l in [('in','Inorder'),('pre','Preorder'),('post','Postorder')] %}<div class="pos" id="pos-{{k}}"><small>{{l}}</small><b>#{{data.order[k].index(q)+1}}</b><span>of {{n}}</span></div>{% endfor %}<div class="pos bst"><small>BST search</small><b>{{path|length}}</b><span>steps</span></div></div>
+<p class="mut" style="margin:6px 0 0;font-size:.85rem">Press Inorder, Preorder or Postorder: the walk highlights {{found.name}} in green when it reaches it, and the position changes with the order.</p></div>{% endif %}{% endif %}
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<div class="row"><b>Traversals</b><div class="chips" style="margin:0"><button data-t="in">Inorder</button><button data-t="pre">Preorder</button><button data-t="post">Postorder</button></div>
+<label class="mut" style="margin-left:auto">Speed <input type="range" id="speed" min="1" max="10" value="6" style="width:120px;margin:0 0 0 6px;vertical-align:middle"></label><button class="btn sm ghost" id="reset">Reset</button><button class="btn sm ghost" id="fit">Fit to screen</button></div></div>
+<div class="card tcanvas" id="canvas"><svg id="tree" width="{{w}}" height="{{h}}" viewBox="0 0 {{w}} {{h}}" role="img" aria-label="Binary search tree of the menu">
+{% for e in edges %}<path class="edge" pathLength="1" d="M{{e.x1}},{{e.y1}} C{{e.x1}},{{(e.y1+e.y2)/2}} {{e.x2}},{{(e.y1+e.y2)/2}} {{e.x2}},{{e.y2}}" style="animation-delay:{{e.d*0.18}}s"/>{% endfor %}
+{% for n in nodes %}<g transform="translate({{n.x}},{{n.y}})"><g class="tn pop" data-k="{{n.key}}" style="animation-delay:{{n.d*0.18+0.1}}s"><title>{{n.label}}</title><circle class="c" r="21"/><text y="7" text-anchor="middle" font-size="20">{{n.emoji}}</text><text class="lb" y="40" text-anchor="middle">{{n.label[:11]}}</text><circle class="badge" cx="17" cy="-17" r="9"/><text class="num" x="17" y="-13.5" text-anchor="middle"></text></g></g>{% endfor %}</svg></div>
+<div class="card"><b id="tname">Press a traversal button to watch it walk the tree</b><div id="rule" class="mut"></div><div class="seq" id="seq"></div></div>
+<script>
+const T = {{ data|tojson }}, W = {{w}}, H = {{h}}, ROOTX = {{ nodes[0].x if nodes else 0 }};
+const el = {}; document.querySelectorAll('.tn').forEach(g => el[g.dataset.k] = g);
+const seq = document.getElementById('seq'), tname = document.getElementById('tname'), rule = document.getElementById('rule'), speed = document.getElementById('speed'), svg = document.getElementById('tree'), canvas = document.getElementById('canvas');
+let timer = null;
+function reset(){ clearInterval(timer); Object.values(el).forEach(g => { g.classList.remove('done','cur','found'); g.querySelector('.num').textContent = ''; }); seq.innerHTML = ''; document.querySelectorAll('[data-t]').forEach(b => b.classList.remove('on')); document.querySelectorAll('.pos').forEach(p => p.classList.remove('on')); }
+function play(list, label, hint, mode){
+  reset(); tname.textContent = label; rule.textContent = hint; let i = 0;
+  timer = setInterval(() => {
+    if (i > 0) { const p = el[list[i-1]]; p.classList.remove('cur'); if (!p.classList.contains('found')) p.classList.add('done'); }
+    if (i >= list.length) { clearInterval(timer); if (mode === 'search' && T.found) { const l = el[list[list.length-1]]; l.classList.remove('done'); l.classList.add('found'); } return; }
+    const g = el[list[i]]; g.classList.add('cur'); g.querySelector('.num').textContent = i + 1;
+    if (mode === 'trav' && T.target && list[i] === T.target) { g.classList.add('found'); tname.textContent = label + ' - found ' + T.names[T.target] + ' at visit #' + (i + 1) + ' of ' + list.length; }
+    const s = document.createElement('span'); s.textContent = (i + 1) + '. ' + T.names[list[i]]; seq.appendChild(s);
+    g.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}); i++;
+  }, 760 - speed.value * 70);
+}
+const rules = {in:['Inorder: Left, Root, Right','Visits the menu in alphabetical order.'], pre:['Preorder: Root, Left, Right','Every parent comes before its children.'], post:['Postorder: Left, Right, Root','Every parent comes after its children.']};
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const t = b.dataset.t; play(T.order[t], rules[t][0], rules[t][1], 'trav'); b.classList.add('on'); const pb = document.getElementById('pos-' + t); if (pb) pb.classList.add('on'); });
+document.getElementById('reset').onclick = () => { reset(); tname.textContent = 'Press a traversal button to watch it walk the tree'; rule.textContent = ''; };
+let fit = false; document.getElementById('fit').onclick = function(){ fit = !fit; svg.style.width = fit ? '100%' : W + 'px'; svg.style.height = fit ? 'auto' : H + 'px'; this.textContent = fit ? 'Full size' : 'Fit to screen'; };
+canvas.scrollLeft = ROOTX - canvas.clientWidth / 2;
+if (T.path.length) setTimeout(() => play(T.path, 'Search path', 'Each step goes left or right, skipping half of what is left.', 'search'), 1400);
+</script>
+{% endblock %}

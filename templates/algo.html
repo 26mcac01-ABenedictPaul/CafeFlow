@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Searching and sorting</h2><ul>
+<li><b>Linear search</b> checks dishes one by one from the start: up to n comparisons.</li>
+<li><b>Binary search</b> needs a <b>sorted array</b>. It checks the middle, then discards half each step: about log2(n) comparisons. We copy the linked list into an array first, because a linked list cannot jump to the middle.</li>
+<li><b>Insertion sort</b> slides each dish back into place: O(n^2) in general, but quick on small or nearly sorted lists, so we use it for the live list of pending orders.</li>
+<li><b>Merge sort</b> splits the list in halves, sorts each and merges them: always O(n log n). We use it for the menu and the order report.</li>
+<li>Press <b>Start race</b>: both sorts run on the same list at the same speed, and both searches look for the same dish. The counters are the real comparison counts from our code.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.race{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:860px){.race{grid-template-columns:1fr}}
+.panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.bars{height:230px;display:flex;align-items:flex-end;gap:2px;padding-top:10px;border-bottom:2px solid var(--line)}
+.rb{flex:1;min-width:2px;border-radius:4px 4px 0 0;transition:height .12s,background .25s,filter .15s}
+.rb.cmp{filter:brightness(.5) saturate(1.7);outline:2px solid #1b1f3b}.rb.wrote{filter:brightness(1.15)}.rb.sorted{background:#12a37f!important}
+.ps{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;color:var(--mut);align-items:center}.ps b{color:var(--ink);font-size:1.1rem}.ps .status{margin-left:auto;font-weight:700;color:var(--mint)}
+.cells{display:flex;flex-wrap:wrap;gap:5px;min-height:60px;margin:8px 0}
+.cell{width:36px;height:44px;border-radius:10px;background:#f1f3fa;border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.05rem;line-height:1;transition:all .15s}
+.cell small{font-size:.6rem;color:var(--mut);margin-top:3px}.cell.seen{opacity:.35}.cell.out{opacity:.14;transform:scale(.88)}
+.cell.now{background:#ffb703;border-color:#ff6b35;transform:translateY(-4px) scale(1.12)}.cell.hit{background:#7be0b8;border-color:#0d7a62;opacity:1;transform:scale(1.18)}
+.result{margin-left:auto;font-weight:700;color:var(--ink)}
+</style>
+<div class="pagehead"><h1>Search &amp; sort lab</h1><p class="mut">Two sorting algorithms and two search algorithms race on the real menu. Every number comes from our own code.</p></div>
+<div class="chips">{% for k,c in COUNTERS.items() %}<a href="/algo?c={{k}}" class="{{'on' if k==ck}}">{{c.name}}</a>{% endfor %}<a href="/algo?c=all" class="{{'on' if ck=='all'}}">All counters</a></div>
+<div class="card row"><button class="btn" id="start">&#9654; Start race</button><button class="btn ghost sm" id="pause">Pause</button><button class="btn ghost sm" id="skip">Skip to end</button>
+<label class="mut" style="margin-left:auto">Speed <input type="range" id="speed" min="1" max="10" value="6" style="width:140px;margin:0 0 0 6px;vertical-align:middle"></label></div>
+<h2 class="sec">Sorting race <small>each bar is the price of one dish &middot; {{n}} dishes</small></h2>
+<div class="race">
+<div class="card panel" id="pIns"><div class="ph"><b>Insertion sort</b><span class="mut">O(n&sup2;) worst case</span></div><div class="bars"></div><div class="ps"><span>Comparisons <b class="cmp-n">0</b></span><span>Writes <b class="set-n">0</b></span><span class="status"></span></div></div>
+<div class="card panel" id="pMrg"><div class="ph"><b>Merge sort</b><span class="mut">O(n log n) always</span></div><div class="bars"></div><div class="ps"><span>Comparisons <b class="cmp-n">0</b></span><span>Writes <b class="set-n">0</b></span><span class="status"></span></div></div></div>
+<p class="mut">Final counts for this menu: insertion sort made <b>{{c_ins}}</b> comparisons, merge sort made <b>{{c_mrg}}</b>.</p>
+<h2 class="sec">Search race <small>look for one dish among {{n}}</small></h2>
+<form method="get" class="row"><input type="hidden" name="c" value="{{ck}}"><input name="q" value="{{q}}" list="names" placeholder="Exact dish name" style="flex:1;margin:0;min-width:220px"><datalist id="names">{% for nm in names %}<option value="{{nm}}">{% endfor %}</datalist><button class="btn sun">Search for this dish</button></form>
+<div class="race" style="margin-top:14px">
+<div class="card panel" id="sLin"><div class="ph"><b>Linear search</b><span class="mut">unsorted menu, one by one</span></div><div class="cells"></div><div class="ps"><span>Comparisons <b class="cnt">0</b></span><span class="result"></span></div></div>
+<div class="card panel" id="sBin"><div class="ph"><b>Binary search</b><span class="mut">A to Z sorted menu, halving</span></div><div class="cells"></div><div class="ps"><span>Comparisons <b class="cnt">0</b></span><span class="result"></span></div></div></div>
+<p class="mut">For <b>{{q}}</b>: linear search needed <b>{{lc}}</b> comparison(s), binary search needed <b>{{bc}}</b>.</p>
+<h2 class="sec">Efficiency at a glance</h2><div class="card"><table><tr><th>Algorithm</th><th>Best</th><th>Worst</th><th>Used in CafeFlow for</th></tr>
+<tr><td>Linear search</td><td>O(1)</td><td>O(n)</td><td>Unsorted menu</td></tr><tr><td>Binary search</td><td>O(1)</td><td>O(log n)</td><td>Sorted menu, order lookup by ID</td></tr>
+<tr><td>Insertion sort</td><td>O(n)</td><td>O(n&sup2;)</td><td>Small live list of pending orders</td></tr><tr><td>Merge sort</td><td>O(n log n)</td><td>O(n log n)</td><td>Menu sorting, order report</td></tr></table></div>
+<script>
+const D = {{ data|tojson }}, speedEl = document.getElementById('speed');
+function bars(root, events){
+  const B = D.bars, byId = {}; B.forEach(b => byId[b.id] = b);
+  const max = Math.max(1, ...B.map(b => b.price)), box = root.querySelector('.bars'), cN = root.querySelector('.cmp-n'), sN = root.querySelector('.set-n'), status = root.querySelector('.status');
+  let els = [], k = 0, cmps = 0, sets = 0, marks = [];
+  const paint = (pos, id) => { const b = byId[id], p = b.price / max, e = els[pos]; e.style.height = (8 + p * 92) + '%'; e.style.background = 'hsl(' + (42 - p * 34) + ',92%,' + (70 - p * 20) + '%)'; e.title = b.name + ' - Rs ' + b.price; };
+  const clear = () => { marks.forEach(e => e.classList.remove('cmp')); marks = []; };
+  function finish(){ clear(); els.forEach((e, i) => { e.classList.add('sorted'); e.style.transitionDelay = (i * 12) + 'ms'; }); status.textContent = 'Sorted'; }
+  function reset(){ box.innerHTML = ''; els = B.map(() => { const d = document.createElement('div'); d.className = 'rb'; box.appendChild(d); return d; }); B.forEach((b, i) => paint(i, b.id)); k = cmps = sets = 0; marks = []; cN.textContent = sN.textContent = 0; status.textContent = ''; if (!events.length) finish(); }
+  function step(){
+    if (k >= events.length) return false;
+    const ev = events[k++];
+    if (ev[0] === 'pick') status.textContent = 'Placing: ' + byId[ev[2]].name;
+    else if (ev[0] === 'cmp') { clear(); [ev[1], ev[2]].forEach(p => { if (p !== undefined) { els[p].classList.add('cmp'); marks.push(els[p]); } }); cmps++; cN.textContent = cmps; }
+    else { paint(ev[1], ev[2]); sets++; sN.textContent = sets; clear(); const e = els[ev[1]]; e.classList.add('wrote'); setTimeout(() => e.classList.remove('wrote'), 160); }
+    if (k >= events.length) finish();
+    return true;
+  }
+  reset(); return {step, reset};
+}
+function lane(root, L, mode){
+  const box = root.querySelector('.cells'), cnt = root.querySelector('.cnt'), res = root.querySelector('.result'); let els = [], k = 0;
+  function reset(){ box.innerHTML = ''; els = L.cells.map((c, i) => { const d = document.createElement('div'); d.className = 'cell'; d.title = c.name; d.innerHTML = '<span>' + c.emoji + '</span><small>' + (i + 1) + '</small>'; box.appendChild(d); return d; }); k = 0; cnt.textContent = 0; res.textContent = ''; }
+  function step(){
+    if (k >= L.log.length) return false;
+    const ev = L.log[k++]; cnt.textContent = k;
+    if (mode === 'lin') { els.forEach(e => e.classList.remove('now')); if (k > 1) els[L.log[k-2]].classList.add('seen'); els[ev].classList.add('now'); }
+    else { els.forEach((e, i) => { e.classList.remove('now'); e.classList.toggle('out', i < ev[0] || i > ev[2]); }); els[ev[1]].classList.add('now'); }
+    if (k >= L.log.length) { if (L.found >= 0) { els.forEach(e => e.classList.remove('now')); els[L.found].classList.add('hit'); res.textContent = 'Found at position ' + (L.found + 1); } else res.textContent = 'Not found'; }
+    return true;
+  }
+  reset(); return {step, reset};
+}
+const players = [bars(document.getElementById('pIns'), D.ins), bars(document.getElementById('pMrg'), D.mrg), lane(document.getElementById('sLin'), D.lin, 'lin'), lane(document.getElementById('sBin'), D.bin, 'bin')];
+let timer = null, paused = false;
+const delay = () => 330 - speedEl.value * 30;
+function run(){ clearInterval(timer); timer = setInterval(() => { let any = false; players.forEach(p => { if (p.step()) any = true; }); if (!any) { clearInterval(timer); timer = null; } }, delay()); }
+document.getElementById('start').onclick = () => { players.forEach(p => p.reset()); paused = false; document.getElementById('pause').textContent = 'Pause'; run(); };
+document.getElementById('pause').onclick = function(){ if (paused) { run(); paused = false; this.textContent = 'Pause'; } else { clearInterval(timer); paused = true; this.textContent = 'Resume'; } };
+document.getElementById('skip').onclick = () => { clearInterval(timer); while (players.map(p => p.step()).some(Boolean)); };
+speedEl.oninput = () => { if (timer && !paused) run(); };
+setTimeout(() => document.getElementById('start').click(), 600);
+</script>
+{% endblock %}

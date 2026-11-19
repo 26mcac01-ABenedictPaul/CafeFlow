@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block body %}<div class="pagehead"><h1>Project coverage</h1><p class="mut">Every phase of the course plan, where it lives in CafeFlow, and a live link to try it.</p></div>
+{% for n,title,clo,rows in phases %}<h2 class="sec">Phase {{n}}: {{title}} <small>{{clo}}</small></h2><div class="card"><table><tr><th>Implemented</th><th>Code</th><th></th></tr>
+{% for what,where,url in rows %}<tr><td>&#10003; {{what}}</td><td><code>{{where}}</code></td><td><a class="btn sm ghost" href="{{url}}">Open</a></td></tr>{% endfor %}</table></div>{% endfor %}
+<div class="card"><b>Run the tests:</b> <code>python tests.py</code> checks the linked list, stack, queue, BST, traversals, graph, searches, sorts, greedy, DP and backtracking.</div>{% endblock %}

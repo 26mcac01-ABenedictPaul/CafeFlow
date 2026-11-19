@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% block body %}
+{% set cols = ["#ffe8c7","#ffd9e4","#d7ecff","#d6f5e6","#ffe0d1","#e6defb"] %}
+<section class="hero">
+ <div>
+  <span class="pill"><i class="dot"></i> Floor {{floor}} canteen is open</span> {% if PURE_VEG %}<span class="vegmark" style="background:#fff"><i></i>100% PURE VEG</span>{% else %}<span class="vegmark both"><span class="vn"></span><span class="vn n"></span>VEG &amp; NON-VEG</span>{% endif %}
+  <h1>Hungry, {{user.name.split()[0]}}?<br><em>Order before the queue forms.</em></h1>
+  <p class="lead">{{ '100% pure veg food' if PURE_VEG else 'Fresh food' }} from three counters, a seat waiting for you, and no standing in line.</p>
+  <form action="/search" class="searchbar"><input name="q" list="dishes" placeholder="Search dosa, pulao, pastry, burger..." aria-label="Search dishes"><button class="btn">Search</button></form>
+  <datalist id="dishes">{% for n in dish_names %}<option value="{{n}}">{% endfor %}</datalist>
+  <div class="stats"><div><b>{{COUNTERS|length}}</b><span>Counters</span></div><div><b>{{n_items}}</b><span>Dishes</span></div><div><b>18</b><span>Tables &amp; sofas</span></div><div><b>{{floors|length}}</b><span>Floors</span></div></div>
+ </div>
+ <div class="collage">{% for p in hero_pics %}<figure class="c{{loop.index}}"><img src="{{p.url}}" alt="{{p.name}}"><figcaption>{{p.name}}</figcaption></figure>{% else %}<div class="plate">🍛</div>{% endfor %}</div>
+</section>
+
+<h2 class="sec">Offers for you <small>Floor {{floor}} deals from the canteen</small></h2><div class="adstrip">{% include "_party_ad.html" %}{% for a in ads %}{% set back = "/home" %}{% include "_ad.html" %}{% endfor %}</div>
+
+<h2 class="sec">Choose your floor <small>Each floor has its own tables and queues</small></h2>
+<div class="floorcards">{% for f in floors %}<a class="floorcard {{'on' if f==floor}}" href="/floor/{{f}}?next=/home" style="{% if floorpics[f] %}background-image:linear-gradient(180deg,rgba(27,31,59,.1),rgba(27,31,59,.82)),url('{{floorpics[f]}}'){% endif %}">
+<span class="badge">{{'Selected' if f==floor else 'Switch here'}}</span><div><h3>Floor {{f}} canteen</h3><p>{{cname(f,'kf')}} &middot; {{cname(f,'brew')}} &middot; {{cname(f,'roll')}}</p></div></a>{% endfor %}</div>
+
+<h2 class="sec">What's on your mind?</h2>
+<div class="cats">{% for c in cats %}<a class="cat" href="/counter/{{c.ck}}?sec={{c.sec|urlencode}}"><span class="ring">{% if c.pic %}<img src="{{c.pic}}" alt="">{% else %}{{c.emoji}}{% endif %}</span><b>{{c.label}}</b><small>{{c.n}} dishes</small></a>{% endfor %}</div>
+
+<h2 class="sec">Our counters on Floor {{floor}} <small>Tap a counter to see its full menu</small></h2>
+<div class="ccards">{% for k,c in COUNTERS.items() %}{% set cp = counter_photo(floor, k) %}
+<a class="ccard" href="/counter/{{k}}" style="--a:{{c.c1}};--b:{{c.c2}}"><div class="cimg" style="{% if cp %}background-image:url('{{cp}}'){% endif %}">{% if not cp %}<span>{{c.emoji}}</span>{% endif %}<span class="open">Open now</span></div>
+<div class="cbody"><small>Counter {{c.no}}</small><h3>{{c.name}}</h3><p>{{c.tag}}</p><div class="tags">{% for s in c.sections %}<i>{{s}}</i>{% endfor %}</div><div class="go"><span>{{counts[k]}} dishes</span><b>Order now &rarr;</b></div></div></a>{% endfor %}</div>
+
+<h2 class="sec">Popular right now</h2>
+<div class="strip"><div class="belt">{% for r in range(2) %}{% for i in belt1 %}{% set p = photo(i.name) %}<a class="fcard" href="/search?q={{i.name|urlencode}}"><div class="e {{'ph' if p}}" style="background:{{cols[loop.index0 % 6]}}">{% if p %}<img src="{{p}}" alt="{{i.name}}" loading="lazy">{% else %}{{i.emoji}}{% endif %}</div><b>{{i.name}}</b><span class="mut">Rs {{i.price}}</span></a>{% endfor %}{% endfor %}</div>
+<div class="belt rl">{% for r in range(2) %}{% for i in belt2 %}{% set p = photo(i.name) %}<a class="fcard" href="/search?q={{i.name|urlencode}}"><div class="e {{'ph' if p}}" style="background:{{cols[(loop.index0+3) % 6]}}">{% if p %}<img src="{{p}}" alt="{{i.name}}" loading="lazy">{% else %}{{i.emoji}}{% endif %}</div><b>{{i.name}}</b><span class="mut">Rs {{i.price}}</span></a>{% endfor %}{% endfor %}</div></div>
+
+<h2 class="sec">Quick actions</h2>
+<div class="qa">
+<a href="/reserve" class="qcard"><span class="qi" style="background:#d6f5e6">🪑</span><div><b>Book a seat</b><small>Pick a table or sofa for a time on the Floor {{floor}} plan</small></div><span class="ar">&rarr;</span></a>
+<a href="/orders" class="qcard"><span class="qi" style="background:#e6defb">🧾</span><div><b>Track my orders</b><small>Live status, bills and ready alerts</small></div><span class="ar">&rarr;</span></a>
+<a href="/map" class="qcard"><span class="qi" style="background:#d7ecff">🗺️</span><div><b>Canteen map</b><small>Find the way with animated BFS and DFS</small></div><span class="ar">&rarr;</span></a>
+<a href="/algo" class="qcard"><span class="qi" style="background:#ffe8c7">⚡</span><div><b>Search &amp; sort lab</b><small>Watch sorting and searching race</small></div><span class="ar">&rarr;</span></a>
+<a href="/tree" class="qcard"><span class="qi" style="background:#ffd9e4">🌳</span><div><b>Menu tree</b><small>Animated binary search tree of the menu</small></div><span class="ar">&rarr;</span></a>
+</div>
+<h2 class="sec">What students are saying <small><a href="/reviews">add yours</a></small></h2>
+{% include "_revwall.html" %}
+{% endblock %}

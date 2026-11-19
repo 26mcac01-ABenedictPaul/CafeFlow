@@ -1,0 +1,10 @@
+{% extends "vbase.html" %}{% block vbody %}<h1 style="margin-top:0">Menu</h1><p class="mut">Add dishes{{ ' (veg only)' if PURE_VEG }}, change prices, mark sold out, or remove items. Changes show to students instantly.</p>
+<form method="post" action="/vendor/menu" enctype="multipart/form-data" class="card"><b>Add a dish</b><div class="row" style="margin-top:8px">
+<input name="name" placeholder="Dish name" required style="flex:2;margin:0"><input name="price" type="number" min="1" placeholder="Price (Rs)" required style="flex:1;margin:0">
+<select name="section" style="flex:1;margin:0">{% for s in v.c.sections %}<option>{{s}}</option>{% endfor %}</select><input type="file" name="photo" accept="image/*" style="flex:2;margin:0">{% if PURE_VEG %}<span class="vegmark"><i></i>VEG</span>{% else %}<select name="veg" style="flex:1;margin:0"><option value="1">Veg</option><option value="0">Non-veg</option></select>{% endif %}<button class="btn">Add dish</button></div></form>
+<div class="card"><table><tr><th></th><th>Dish</th><th>Section</th><th>Price</th><th>Availability</th><th></th></tr>
+{% for i in items %}{% set p = photo(i.name) %}<tr><td style="width:56px">{% if p %}<img src="{{p}}" style="width:48px;height:48px;object-fit:cover;border-radius:10px">{% else %}<span style="font-size:1.8rem">{{i.emoji}}</span>{% endif %}</td><td><b>{{i.name}}</b></td><td class="mut">{{i.section}}</td>
+<td><form method="post" action="/vendor/menu/{{i.id}}/price" class="row" style="flex-wrap:nowrap"><input name="price" type="number" min="1" value="{{i.price}}" style="width:80px;margin:0;padding:6px"><button class="btn sm ghost">Save</button></form></td>
+<td><form method="post" action="/vendor/menu/{{i.id}}/toggle"><button class="btn sm {{'mint' if i.avail is not defined or i.avail else 'dark'}}">{{'Available' if i.avail is not defined or i.avail else 'Sold out'}}</button></form></td>
+<td><form method="post" action="/vendor/menu/{{i.id}}/remove" onsubmit="return confirm('Remove {{i.name}}?')"><button class="btn sm ghost" style="border-color:#d0342c;color:#d0342c">Remove</button></form></td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "abase.html" %}{% block abody %}<h1 style="margin-top:0">Offers &amp; ads</h1>
+<p class="mut">Choose dishes and an offer type. Live offers appear as <b>ads on the student home page</b>, as ribbons and combo cards on the counter page, and the bill applies them automatically.</p>
+<div class="card" style="background:linear-gradient(120deg,#fff0f7,#fff7e6)"><b>🎂 Plan a Birthday Party</b> <span class="mut">is always live as the first ad on the student home page.</span> <a class="btn sm ghost" href="/admin/parties">See parties &amp; discount rules</a></div>
+<form method="post" action="/admin/offers/add" class="card" id="of"><b>Create an offer</b>
+<div class="pay-grid" style="margin-top:8px">{% for k,l,d in kinds %}<label class="pay"><input type="radio" name="type" value="{{k}}" {{'checked' if k==pre.type}}><span style="font-size:1.6rem">{{{'discount':'🏷️','combo':'🍱','bogo':'🎁','popular':'🔥'}[k]}}</span><span>{{l}}</span><small class="mut">{{d}}</small></label>{% endfor %}</div>
+<div class="bookbar"><div><label>Counter</label><select name="counter" id="oc">{% for k in ['kf','brew','roll'] %}<option value="{{k}}" {{'selected' if k==pre.counter}}>{{cname(1,k)}} / {{cname(2,k)}}</option>{% endfor %}</select></div>
+<div><label>Show on</label><select name="scope"><option value="both">Both floors</option>{% for f in floors %}<option value="{{f}}">Floor {{f}} only</option>{% endfor %}</select></div>
+<div><label>Headline (optional)</label><input name="title" placeholder="e.g. Breakfast Combo"></div>
+<div id="fpct"><label>Discount %</label><input type="number" name="pct" min="1" max="90" value="15"></div>
+<div id="fprice"><label>Combo price (Rs) <span id="regular" class="mut"></span></label><input type="number" name="price" min="1" value="{{pre.price}}"></div></div>
+<div class="row" style="margin:12px 0 4px"><b>Dishes</b><button type="button" class="btn sm ghost" onclick="useTop()">Use current top sellers</button><span class="mut" id="picked"></span></div>
+<div id="dishes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:300px;overflow:auto;padding:4px"></div>
+<button class="btn mint" style="margin-top:12px">Publish offer</button></form>
+<h2>Your offers ({{ls|length}})</h2>
+{% for x in ls %}{% set o = x.o %}<div class="card row" style="opacity:{{1 if o.active else 0.55}}"><div style="flex:1;min-width:240px"><span class="tag" style="background:#ffe6dc;color:#b5401a">{{x.view.head}}</span> <b>{{o.title}}</b> <span class="mut">{{x.cname}} &middot; Floor {{o.floor}}</span>
+<div class="mut" style="margin-top:4px">{{x.view.sub}}</div></div><div class="mut" style="text-align:right">Used in <b>{{x.use.n}}</b> orders<br>Saved students Rs {{x.use.saved}}</div>
+<form method="post" action="/admin/offers/{{o.id}}/toggle"><button class="btn sm {{'ghost' if o.active else 'mint'}}">{{'Pause' if o.active else 'Resume'}}</button></form>
+<form method="post" action="/admin/offers/{{o.id}}/delete" onsubmit="return confirm('Delete this offer?')"><button class="btn sm ghost" style="border-color:#d0342c;color:#d0342c">Delete</button></form></div>{% else %}<div class="card mut">No offers yet. Create the first one above, or open <a href="/admin/basket">Basket analysis</a> and press "Make combo" on a rule.</div>{% endfor %}
+<script>
+const MENUS={{menus|tojson}},TOP={{top|tojson}},PRE={{pre.names|tojson}};
+const $=id=>document.getElementById(id),form=$('of');
+function draw(sel){const k=$('oc').value;$('dishes').innerHTML=MENUS[k].map(d=>`<label class="pay" style="padding:8px;gap:4px;flex-direction:row;text-align:left;font-weight:600;font-size:.86rem"><input type="checkbox" name="names" value="${d.name.replace(/"/g,'&quot;')}" data-price="${d.price}" ${sel.includes(d.name)?'checked':''}>${d.pic?`<img src="${d.pic}" style="width:38px;height:38px;border-radius:8px;object-fit:cover">`:''}<span>${d.name}<br><small class="mut">Rs ${d.price}</small></span></label>`).join('');upd()}
+function upd(){const t=form.type.value;$('fpct').style.display=t==='discount'?'':'none';$('fprice').style.display=t==='combo'?'':'none';
+ const c=[...form.querySelectorAll('input[name=names]:checked')];$('picked').textContent=c.length+' selected';$('regular').textContent=t==='combo'&&c.length?'(regular Rs '+c.reduce((a,x)=>a+ +x.dataset.price,0)+')':''}
+function useTop(){draw(TOP[$('oc').value]||[])}
+$('oc').onchange=()=>draw([]);form.addEventListener('change',upd);draw(PRE);
+</script>{% endblock %}

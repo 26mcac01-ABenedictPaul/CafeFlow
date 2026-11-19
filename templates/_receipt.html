@@ -1,0 +1,18 @@
+<div class="rcpt">
+<svg class="rico" viewBox="0 0 44 44" fill="none" stroke="#1b1f3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9"/><path d="M13 19h14v10a4 4 0 0 1-4 4h-6a4 4 0 0 1-4-4z"/><path d="M27 21h2.5a3 3 0 0 1 0 6H27"/><path d="M17 11v4M22 10v5"/></svg>
+<h3>{{rd.biz}}</h3>{% for a in rd.addr %}<p class="ra">{{a}}</p>{% endfor %}
+<hr><div class="rl"><span>DATE: {{rd.date}}</span><span>TIME: {{rd.time}}</span></div><hr>
+<p class="rt">Customer: {{rd.customer}}</p><p class="rt">Counter: {{rd.counter}}</p><p class="rt">Floor: {{rd.floor}}</p><p class="rt">Order no: #{{rd.order}}</p><hr>
+{% for l in rd.lines %}<div class="rl"><span>{{l.qty}} x {{l.name|upper}} @ Rs {{l.price}}</span><b>Rs {{l.sub}}</b></div>{% endfor %}
+<hr><div class="rl"><span>SUBTOTAL</span><b>Rs {{rd.subtotal}}</b></div>
+{% for d in rd.discounts %}<div class="rl"><span>{{d.label|upper}}</span><b>- Rs {{d.amount}}</b></div>{% endfor %}
+{% if rd.gst_pct %}<div class="rl"><span>INCL. GST ({{rd.gst_pct}}%)</span><b>Rs {{'%.2f'|format(rd.gst)}}</b></div>{% endif %}
+<hr><div class="rl tot"><span>TOTAL</span><span>Rs {{rd.total}}</span></div><hr>
+{% set lu = paylogo(rd.mkey) if rd.mkey else None %}
+<div class="rl"><span>PAYMENT:</span><span>{% if lu %}<img class="rlogo" src="{{lu}}" alt="">{% endif %}{{rd.method|upper}}</span></div>
+{% if rd.upi %}<div class="rl"><span>UPI ID:</span><span>{{rd.upi}}</span></div>{% endif %}
+{% if rd.txn %}<div class="rl"><span>TXN:</span><span>{{rd.txn}}</span></div>{% endif %}
+<div class="rl"><span>STATUS:</span><span>{{rd.status|upper}}</span></div><hr>
+<p class="thanks">THANK YOU FOR VISITING!</p><p class="thanks">WE HOPE TO SEE YOU AGAIN</p><p class="note">Collect your order when you get the ready alert.</p>
+{% if rd.bars %}<svg class="rbar" viewBox="0 0 {{rd.bw}} 40" preserveAspectRatio="none" aria-hidden="true">{% for x,w in rd.bars %}<rect x="{{x}}" y="0" width="{{w}}" height="40"/>{% endfor %}</svg><div class="rcode">{{rd.code}}</div>{% endif %}
+</div>

@@ -1,0 +1,13 @@
+{
+  "secret_key": "paste-a-long-random-string-here",
+  "admin_name": "admin",
+  "admin_pass": "choose-a-new-strong-password",
+  "vendors": {
+    "campusfeast": "new-password-1",
+    "zamorin1": "new-password-2",
+    "slurrpp": "new-password-3",
+    "annaprada": "new-password-4",
+    "zamorin2": "new-password-5",
+    "delhibite": "new-password-6"
+  }
+}

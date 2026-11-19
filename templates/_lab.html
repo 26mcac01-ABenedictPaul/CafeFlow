@@ -1,0 +1,50 @@
+{% set vend = L.role=='vendor' %}
+<style>.lab h2{margin:26px 0 6px}.lab .ph{display:inline-block;background:#14161f;color:#fff;border-radius:8px;padding:2px 9px;font-size:.78rem;margin-right:8px}.lab .pill{display:inline-block;background:#eef0f7;border-radius:8px;padding:3px 9px;margin:2px;font-size:.88rem}.lab .pill.hit{background:#d8f3dc}.lab form.row input,.lab form.row select{width:auto;margin:0}.lab .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}</style>
+<div class="lab">
+<h1 style="margin:0">Algorithm lab</h1><p class="mut">All four course phases running on {{'this counter' if vend else 'live canteen'}} data{{'' if vend else ' (' ~ ('Floor ' ~ L.fl) ~ ')'}}. Every number comes from our own code in <code>ds.py</code> and <code>algos.py</code>.</p>
+
+<h2><span class="ph">Phase 1</span>Linear data structures</h2>
+<div class="two"><div class="card"><b>Queue (FIFO)</b> <span class="mut">pending orders wait in arrival order</span>
+{% for f,k,n,c in L.queues %}<div style="padding:5px 0;border-top:1px solid var(--line)">{{n}} <span class="mut">F{{f}}</span> <b style="float:right">{{c}} waiting</b></div>{% endfor %}
+{% if vend %}<p class="mut" style="margin-bottom:4px">Front of the queue:</p>{% for i,n,c in L.front %}<span class="pill">#{{i}} {{n}} ({{c}} dish)</span>{% else %}<span class="mut">Empty.</span>{% endfor %}{% endif %}</div>
+<div class="card"><b>Linked list</b> <span class="mut">{{L.list_n}} orders stored; insert, delete, traverse</span>
+{% if not vend %}<p style="margin:10px 0 4px"><b>Stack (LIFO)</b> <span class="mut">activity log, newest on top</span></p>{% for h in L.stack %}<div class="mut" style="font-size:.85rem">&#8627; {{h}}</div>{% endfor %}{% else %}<p class="mut">Orders, menu and sales of this counter are walked node by node on every page.</p>{% endif %}</div></div>
+
+<h2><span class="ph">Phase 2</span>Tree and graph</h2>
+<div class="two"><div class="card"><b>Binary search tree of {{L.n_menu}} dishes</b>
+<form class="row" style="margin:8px 0">{% if not vend %}<input type="hidden" name="floor" value="{{L.fl}}"><input type="hidden" name="counter" value="{{L.ck}}">{% endif %}<input name="q" value="{{L.q}}" placeholder="search a dish, e.g. tea" style="flex:1"><button class="btn sun">Search</button></form>
+{% if L.q %}<p>{% if L.found %}Found <b>{{L.found.name}}</b> (Rs {{L.found.price}}) in {{L.path|length}} step(s):{% else %}Not found after {{L.path|length}} step(s):{% endif %} <span class="mut">{{L.path|join(' > ')}}</span></p>{% endif %}
+<p class="mut" style="margin:6px 0 2px">Inorder (A to Z)</p>{% for x in L.tin %}<span class="pill">{{x}}</span>{% endfor %}
+<p class="mut" style="margin:6px 0 2px">Preorder</p>{% for x in L.tpre %}<span class="pill">{{x}}</span>{% endfor %}
+<p class="mut" style="margin:6px 0 2px">Postorder</p>{% for x in L.tpost %}<span class="pill">{{x}}</span>{% endfor %}</div>
+<div class="card"><b>Canteen graph: Entrance to a counter</b>
+<form class="row" style="margin:8px 0">{% if not vend %}<input type="hidden" name="floor" value="{{L.fl}}"><input type="hidden" name="counter" value="{{L.ck}}">{% endif %}<select name="goal" onchange="this.form.submit()">{% for g in L.goals %}<option {{'selected' if g==L.goal}}>{{g}}</option>{% endfor %}</select></form>
+<p>BFS (queue): shortest route <b>{{L.bpath|join(' > ')}}</b><br><span class="mut">visited {{L.bfs}} place(s)</span></p><p>DFS (stack): <b>{{L.dpath|join(' > ')}}</b><br><span class="mut">visited {{L.dfs}} place(s)</span></p><a class="btn sm ghost" href="/map">Animated map</a></div></div>
+
+<h2><span class="ph">Phase 3</span>Searching and sorting</h2>
+<div class="two"><div class="card"><b>Biggest orders (merge sort)</b> <span class="mut">{{L.n_o}} orders; merge sort {{L.c_m}} comparisons vs insertion sort {{L.c_i}}</span>
+<table>{% for o in L.top %}<tr><td>#{{o.id}}</td><td>{{o.cname}}</td><td class="mut">{{cname(o.floor,o.counter)}}</td><td><b>Rs {{o.total}}</b></td></tr>{% else %}<tr><td class="mut">No orders yet.</td></tr>{% endfor %}</table></div>
+<div class="card"><b>Find order #{{L.fid}}</b> <form class="row" style="margin:8px 0">{% if not vend %}<input type="hidden" name="floor" value="{{L.fl}}"><input type="hidden" name="counter" value="{{L.ck}}">{% endif %}<input name="oid" placeholder="order number" style="flex:1"><button class="btn sun">Find</button></form>
+<p>Binary search: <b>{{L.bc}}</b> comparison(s) &nbsp; Linear search: <b>{{L.lc}}</b> comparison(s)</p><p class="mut">{% if L.bhit %}Found: {{L.bhit.cname}}, Rs {{L.bhit.total}}, {{L.bhit.status}}. Path {{L.bpth|join(' > ')}}{% else %}No such order here.{% endif %}</p></div></div>
+
+<h2><span class="ph">Phase 4</span>Greedy, dynamic programming, backtracking</h2>
+<div class="two"><div class="card"><b>Greedy: change to hand back</b> <span class="mut">cash orders</span>
+<form class="row" style="margin:8px 0">{% if not vend %}<input type="hidden" name="floor" value="{{L.fl}}"><input type="hidden" name="counter" value="{{L.ck}}">{% endif %}Bill <input name="bill" value="{{L.bill}}" style="width:80px"> Paid <input name="paid" value="{{L.paid}}" style="width:80px"><button class="btn sun">Go</button></form>
+{% if L.paid >= L.bill %}<p>Change Rs {{L.paid-L.bill}}:</p>{% for d,n in L.notes %}<span class="pill">{{n}} x Rs {{d}}</span>{% endfor %}<p class="mut">{{L.pieces}} note(s)/coin(s), biggest first</p>{% else %}<p class="mut">Paid is less than the bill.</p>{% endif %}</div>
+{% if vend %}
+<div class="card"><b>Dynamic programming: rush-hour planner</b> <span class="mut">knapsack: minutes are the weight, rupees the value</span>
+<form class="row" style="margin:8px 0">I have <input name="mins" value="{{L.cap}}" style="width:70px"> minutes <input type="hidden" name="stoves" value="{{L.stoves}}"><button class="btn sun">Plan</button></form>
+{% for c in L.dp_pick %}<span class="pill">{{c.name}} ({{c.price}} min, Rs {{c.value}})</span>{% else %}<span class="mut">No pending orders fit.</span>{% endfor %}
+<p class="mut">Cook these first: {{L.dp_min}} min for Rs {{L.dp_val}}.</p></div>
+<div class="card"><b>Backtracking: share orders across stoves</b> <span class="mut">least time for the busiest stove</span>
+<form class="row" style="margin:8px 0"><input type="hidden" name="mins" value="{{L.cap}}">Stoves <select name="stoves" onchange="this.form.submit()">{% for n in [1,2,3,4] %}<option {{'selected' if n==L.stoves}}>{{n}}</option>{% endfor %}</select></form>
+{% if L.bt %}{% for g in L.bt %}<p style="margin:4px 0"><b>Stove {{loop.index}}:</b> {% for no,m in g %}<span class="pill">{{L.bt_ids[no-1] and '#' ~ L.bt_ids[no-1]}} {{m}} min</span>{% else %}<span class="mut">free</span>{% endfor %}</p>{% endfor %}<p class="mut">Everything done in {{L.span}} min. {{L.nodes}} choices explored.</p>{% else %}<p class="mut">No live orders to share.</p>{% endif %}
+<p class="mut" style="font-size:.8rem">Live orders: {% for i,n,m,t in L.live %}#{{i}} {{m}} min{{', ' if not loop.last}}{% endfor %} (first 9 are planned)</p></div>
+{% else %}
+<div class="card"><b>Dynamic programming: combo designer</b> <span class="mut">best-selling dishes within a combo price</span>
+<form class="row" style="margin:8px 0"><input type="hidden" name="floor" value="{{L.fl}}"><select name="c">{% for k in ['kf','brew','roll'] %}<option value="{{k}}" {{'selected' if k==L.ck2}}>{{cname(L.fl,k)}}</option>{% endfor %}</select> Rs <input name="budget" value="{{L.budget}}" style="width:80px"><button class="btn sun">Design</button></form>
+{% for c in L.dp_pick %}<span class="pill">{{c.emoji}} {{c.name}} Rs {{c.price}}</span>{% else %}<span class="mut">Nothing fits.</span>{% endfor %}<p class="mut">Total Rs {{L.dp_cost}}. Turn it into a deal in <a href="/admin/offers">Offers</a>.</p></div>
+<div class="card"><b>Backtracking: seat the groups</b> <span class="mut">free seats from {{L.st}}, 1 hour, Floor {{L.fl}}</span>
+<form class="row" style="margin:8px 0"><input type="hidden" name="floor" value="{{L.fl}}">Groups <input name="groups" value="{{L.groups}}" style="width:110px"><button class="btn sun">Seat</button></form>
+{% if L.seat_plan %}{% for g,sz,u,seats in L.seat_plan %}<span class="pill">Group {{g}} ({{sz}}) &rarr; {{u}} ({{seats}} seats)</span>{% endfor %}<p class="mut">{{L.waste}} empty seat(s). {{L.nodes}} choices explored, {{L.n_free}} free units.</p>{% else %}<p class="mut">No arrangement fits.</p>{% endif %}</div>
+{% endif %}</div></div>

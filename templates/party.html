@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Plan a birthday party</h2><ul><li>Pre-book at least a day ahead: tables, cakes, pastries, fries, chips and treats.</li><li>Bigger parties and earlier bookings get a bigger discount (up to {{maxpct}}%).</li><li>Tables are found for your whole group by our <b>backtracking</b> seat planner.</li><li>The order reaches the counters {{lead//60}} hours before the party so everything is fresh and ready.</li></ul>{% endblock %}
+{% block body %}
+<style>
+.pb{border-radius:26px;padding:26px 30px;color:#fff;background:linear-gradient(120deg,#ff5fa2,#ff9a3c 55%,#ffcf56);position:relative;overflow:hidden;margin-bottom:16px}.pb h1{margin:0;font-size:2rem}.pb p{margin:6px 0 0;max-width:620px;opacity:.95}
+.pb .f{position:absolute;font-size:2.4rem;animation:flo 6s ease-in-out infinite;opacity:.9}@keyframes flo{50%{transform:translateY(-14px) rotate(8deg)}}
+.pgrid{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}@media(max-width:980px){.pgrid{grid-template-columns:1fr}}.sum{position:sticky;top:90px}
+.ff{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.ff label{font-size:.8rem;font-weight:700;color:var(--mut)}.ff input,.ff select{margin:2px 0 0}
+.packs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.packs button{border:1.5px dashed #ff9a3c;background:#fff7ec;border-radius:99px;padding:7px 14px;font:inherit;font-weight:700;cursor:pointer}.packs button:hover{background:#ffe9cc}
+.tabs2{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.tabs2 button{border:0;border-radius:99px;padding:6px 14px;background:#eff1f9;font:inherit;font-weight:700;cursor:pointer}.tabs2 button.on{background:var(--ink);color:#fff}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;max-height:430px;overflow:auto;padding:4px}
+.di{border:1.5px solid var(--line);border-radius:16px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:6px;transition:.15s}.di.has{border-color:#ff6b9a;background:#fff5f9;box-shadow:0 4px 14px rgba(255,95,162,.2)}
+.di .ph{height:70px;border-radius:12px;background:#f3f4fa center/cover;display:grid;place-items:center;font-size:2.2rem}.di b{font-size:.9rem;line-height:1.2}.di .sp{font-size:.65rem;background:#ff5fa2;color:#fff;border-radius:99px;padding:1px 8px;align-self:flex-start;font-weight:800}
+.st{display:flex;align-items:center;justify-content:space-between}.st button{width:30px;height:30px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:1.1rem;cursor:pointer}.st span{font-weight:800;min-width:24px;text-align:center}
+.tier{display:flex;gap:6px;margin:6px 0}.tier span{flex:1;text-align:center;border-radius:10px;background:#f1f3fa;padding:6px 2px;font-size:.78rem;font-weight:700;color:var(--mut)}.tier span.on{background:#ff5fa2;color:#fff}
+.bar3{height:8px;border-radius:9px;background:#eceef6;overflow:hidden}.bar3 i{display:block;height:100%;background:linear-gradient(90deg,#ff9a3c,#ff5fa2);transition:width .3s}
+.pcard{border:1.5px solid var(--line);border-radius:18px;padding:14px;margin:10px 0;background:linear-gradient(135deg,#fff,#fff6fb)}
+.sline{display:flex;justify-content:space-between;gap:8px;margin:3px 0}.sline.g{color:#0d7a4f;font-weight:800}.big{font-size:1.5rem;font-weight:800}
+</style>
+<div class="pb"><span class="f" style="right:30px;top:12px">🎂</span><span class="f" style="right:110px;top:50px;animation-delay:1s">🎈</span><span class="f" style="right:200px;top:10px;animation-delay:2s">🎉</span><span class="f" style="right:60px;bottom:10px;animation-delay:.5s">🍟</span>
+<h1>Plan a Birthday Party 🎂</h1><p>Celebrate your friend in the canteen. Pre-book tables, a cake, pastries, fries and chips and get up to <b>{{maxpct}}% off</b>: {% for g,p in tiers %}{{g}}+ guests {{p}}%{{', ' if not loop.last}}{% endfor %}, plus {{early[1]}}% extra if you book {{early[0]}}+ days ahead.</p></div>
+{% if ok %}<div class="flash">🎉 Party #{{ok}} is booked! The counters and the admin have been told, and your bill is below (tap Bill).</div>{% endif %}
+<div class="pgrid"><div>
+<div class="card"><b>1. Who is the birthday star?</b><div class="ff" style="margin-top:8px"><div><label>Name</label><input id="star" maxlength="30" placeholder="e.g. Riya"></div><div><label>Message on the cake</label><input id="msg" maxlength="40" placeholder="Happy Birthday Riya!"></div></div></div>
+<div class="card"><b>2. When and how many?</b> <span class="mut">(Floor {{floor}}, tables held for 2 hours)</span><div class="ff" style="margin-top:8px">
+<div><label>Date</label><input type="date" id="date" min="{{tomorrow}}" max="{{maxd}}" value="{{tomorrow}}"></div>
+<div><label>Party time</label><select id="time">{% for s in starts %}<option value="{{s}}" {{'selected' if s==960}}>{{pretty_time(s)}}</option>{% endfor %}</select></div>
+<div><label>Guests ({{gmin}} to {{gmax}})</label><div class="st" style="margin-top:4px"><button type="button" id="gm">&minus;</button><span id="gn" style="font-size:1.3rem">8</span><button type="button" id="gp">+</button></div></div></div>
+<div class="tier" id="tier">{% for g,p in tiers %}<span data-g="{{g}}">{{g}}+ guests<br>{{p}}% off</span>{% endfor %}<span id="early">Early bird<br>+{{early[1]}}%</span></div></div>
+<div class="card"><b>3. Pick the treats</b> <span class="mut">cakes, pastries, fries, chips, desserts and drinks</span>
+<div class="packs" id="packs"><button type="button" data-p="cake">🎂 Cake + candles</button><button type="button" data-p="pastry">🍰 Pastry for everyone</button><button type="button" data-p="fries">🍟 Fries &amp; chips</button><button type="button" data-p="drinks">🥤 A drink each</button><button type="button" data-p="clear">Clear</button></div>
+<div class="tabs2" id="tabs"></div><div class="dg" id="dg"></div></div>
+</div>
+<aside class="sum"><div class="card"><b>🎁 Your party</b><div id="sbody" class="mut" style="margin-top:6px">Add the name and a few treats to see your price.</div>
+<div id="pay" style="display:none;margin-top:10px"><label>Payment</label><select id="method" style="margin-bottom:8px"><option value="upi">Pay now: scan &amp; pay with UPI</option><option value="cod">Pay cash when I collect</option></select><button class="btn mint" id="go" style="width:100%">🎉 Book the party</button></div></div></aside></div>
+<h2 class="sec">My parties</h2>
+{% for m in mine %}{% set p=m.p %}<div class="pcard"><div class="row"><b>🎂 {{p.star}}'s party #{{p.id}}</b><span class="tag {{'Accepted' if p.status in ('confirmed','sent') else 'Rejected'}}">{{ {'confirmed':'Booked','sent':'Sent to counters','cancelled':'Cancelled'}[p.status] }}</span><span class="mut">{{m.when}} &middot; {{p.guests}} guests &middot; tables {{m.tables}}</span>
+<b style="margin-left:auto">Rs {{p.total}} <s class="mut" style="font-weight:500">Rs {{p.regular}}</s></b></div>
+<p style="margin:6px 0">{% for l in p.lines %}{{l.emoji}} {{l.qty}} x {{l.name}}{{' + ' if not loop.last}}{% endfor %}</p>
+<div class="row"><span class="badge">You save Rs {{p.saved}} ({{p.pct}}% off)</span>{% if p.status=='confirmed' %}<span class="mut">{% if m.days>0 %}in {{m.days}} day(s){% else %}today{% endif %}</span>{% endif %}
+<button class="btn sm ghost" style="margin-left:auto" onclick="navigator.clipboard&&navigator.clipboard.writeText('You are invited to {{p.star}}\'s birthday party at the CafeFlow canteen, Floor {{p.floor}}, {{m.when}}! 🎂🎉').then(()=>this.textContent='Copied!')">📨 Copy invite</button>
+{% if p.status!='cancelled' %}<a class="btn sm ghost" href="/party/{{p.id}}/bill">🧾 Bill</a>{% endif %}{% if p.status=='confirmed' %}<form method="post" action="/party/{{p.id}}/cancel" onsubmit="return confirm('Cancel this party and release the tables?')"><button class="btn sm ghost">Cancel</button></form>{% endif %}</div></div>
+{% else %}<div class="card mut">No parties yet. Plan the first one above!</div>{% endfor %}
+<dialog id="qrd" class="bigpop"><h2 style="margin-top:0">Scan &amp; pay</h2><div id="qrbox" style="width:210px;margin:auto"></div><p class="mut">Pay <b id="qamt"></b> with Google Pay, PhonePe, Paytm or any UPI app ({{upi_vpa}}).</p>
+<div class="row" style="justify-content:center"><button class="btn mint" id="paid">I have paid</button><button class="btn ghost" onclick="document.getElementById('qrd').close()">Back</button></div></dialog>
+<script>
+const MENUS={{menus|tojson}},TIERS={{tiers|tojson}},GMIN={{gmin}},GMAX={{gmax}};const $=id=>document.getElementById(id);
+const ALL=[...MENUS.brew.map(i=>({...i,k:'brew'})),...MENUS.roll.map(i=>({...i,k:'roll'}))],BY={};ALL.forEach(i=>BY[i.id]=i);
+const secs=['Party specials',...new Set(ALL.filter(i=>!i.special).map(i=>i.section))];let sec=secs[0],items={},guests=8,Q=null,tm=null;
+$('star').value="{{star0}}";
+function draw(){$('tabs').innerHTML=secs.map(s=>'<button type="button" class="'+(s===sec?'on':'')+'" data-s="'+s+'">'+s+'</button>').join('');
+ $('dg').innerHTML=ALL.filter(i=>i.section===sec).map(i=>{const q=items[i.id]||0;return '<div class="di '+(q?'has':'')+'">'+(i.special?'<span class="sp">PARTY SPECIAL</span>':'')+'<div class="ph" '+(i.pic?'style="background-image:url(\''+i.pic+'\')"':'')+'>'+(i.pic?'':i.emoji)+'</div><b>'+i.name+'</b><span class="mut">Rs '+i.price+'</span><div class="st"><button type="button" data-d="-1" data-i="'+i.id+'">&minus;</button><span>'+q+'</span><button type="button" data-d="1" data-i="'+i.id+'">+</button></div></div>'}).join('');}
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(b){sec=b.dataset.s;draw()}};
+$('dg').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.i,q=Math.max(0,Math.min(60,(items[id]||0)+ +b.dataset.d));q?items[id]=q:delete items[id];draw();ask()};
+$('gm').onclick=()=>{guests=Math.max(GMIN,guests-1);$('gn').textContent=guests;ask()};$('gp').onclick=()=>{guests=Math.min(GMAX,guests+1);$('gn').textContent=guests;ask()};
+['star','msg','date','time'].forEach(i=>$(i).oninput=ask);
+const find=n=>ALL.find(i=>i.name===n),firstOf=s=>ALL.filter(i=>i.section===s);
+$('packs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=b.dataset.p;
+ if(p==='clear')items={};
+ if(p==='cake'){const c=find('Birthday Cake 500 g');if(c)items[c.id]=1}
+ if(p==='pastry'){const P=firstOf('Pastries');if(P.length){items={...items};P.slice(0,3).forEach((x,i)=>items[x.id]=Math.floor(guests/Math.min(3,P.length))+(i<guests%Math.min(3,P.length)?1:0))}}
+ if(p==='fries'){const f=find('Fries Party Platter (serves 4)'),c=find('Masala Chips Party Bowl');if(f)items[f.id]=Math.ceil(guests/4);if(c)items[c.id]=Math.ceil(guests/5)}
+ if(p==='drinks'){const d=firstOf('Tea and Coffee').find(x=>/Cold Coffee|Iced Tea|Lime/i.test(x.name))||firstOf('Tea and Coffee')[0];if(d)items[d.id]=guests}
+ draw();ask()};
+function ask(){clearTimeout(tm);tm=setTimeout(async()=>{const r=await fetch('/api/party/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body())});Q=await r.json();show()},250)}
+const body=()=>({star:$('star').value,msg:$('msg').value,date:$('date').value,time:$('time').value,guests,items});
+function show(){const q=Q,b=$('sbody');document.querySelectorAll('#tier span[data-g]').forEach(s=>s.classList.toggle('on',guests>=+s.dataset.g));
+ if(!q.ok){b.innerHTML='<span style="color:#c0392b">'+q.error+'</span>';$('pay').style.display='none';$('early').classList.toggle('on',false);return}
+ $('early').classList.toggle('on',q.early);
+ let h='<div class="sline"><span>🎂 '+q.star+'</span><b>'+q.when+'</b></div><div class="sline"><span>👥 Guests</span><b>'+q.guests+'</b></div><div class="sline"><span>🪑 Tables</span><b>'+q.seats.map(s=>s[2]).join(', ')+'</b></div><hr style="border:0;border-top:1px solid var(--line)">';
+ h+=q.lines.map(l=>'<div class="sline"><span>'+l.emoji+' '+l.qty+' x '+l.name+'</span><span>Rs '+l.sub+'</span></div>').join('')+'<hr style="border:0;border-top:1px solid var(--line)"><div class="sline"><span>Subtotal</span><span>Rs '+q.regular+'</span></div><div class="sline g"><span>Party discount ('+q.pct+'%)</span><span>- Rs '+q.saved+'</span></div><div class="sline"><b>Total</b><span class="big">Rs '+q.total+'</span></div>';
+ if(q.next_tier)h+='<p class="mut" style="margin:8px 0 4px">Add '+q.next_tier.more+' more guest(s) to unlock '+q.next_tier.pct+'% off</p><div class="bar3"><i style="width:'+Math.round(100*(guests-(TIERS.filter(t=>t[0]<=guests).pop()||[GMIN])[0])/(q.next_tier.guests-(TIERS.filter(t=>t[0]<=guests).pop()||[GMIN])[0]))+'%"></i></div>';
+ h+='<div style="margin-top:8px">'+q.perks.map(p=>'<div class="mut" style="font-size:.85rem">'+p+'</div>').join('')+'</div>';b.innerHTML=h;$('pay').style.display='block'}
+async function create(){const r=await fetch('/party/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body(),method:$('method').value})}),j=await r.json();
+ if(j.ok)location.href='/party?ok='+j.id;else{alert(j.error);ask()}}
+$('go').onclick=()=>{if(!Q||!Q.ok)return;if($('method').value==='upi'){$('qrbox').innerHTML=Q.qr;$('qamt').textContent='Rs '+Q.total;$('qrd').showModal()}else create()};
+$('paid').onclick=()=>{$('paid').disabled=true;$('paid').textContent='Confirming...';setTimeout(create,1200)};
+draw();ask();
+</script>{% endblock %}

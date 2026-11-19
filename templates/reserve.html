@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Seat booking</h2><ul>
+<li>The seating units of a floor (tables and sofas) are a fixed <b>array</b>: for the chosen date and time window each cell says who holds it.</li>
+<li>Every booking is a record in a <b>linked list</b> with a date, start time and duration. Cancelling deletes that node.</li>
+<li>Two bookings clash when their time ranges overlap. Your list of bookings is ordered with <b>merge sort</b>.</li>
+<li>When you book, the <b>admin gets a live notification</b> with the seat and the time.</li></ul>{% endblock %}
+{% block body %}<div class="banner" style="--a:#2d3262;--b:#1b1f3b;min-height:150px;margin-bottom:12px;{% if floorpic %}background-image:linear-gradient(100deg,rgba(27,31,59,.9),rgba(27,31,59,.15)),url('{{floorpic}}'){% endif %}"><span class="no">Floor {{floor}} canteen</span><h1>Book a seat</h1><p>Pick a date and time, then tap a free table or sofa on the plan. The admin is notified of your time.</p></div>
+<form method="get" class="card"><div class="bookbar">
+<div><label>Date</label><select name="date" onchange="this.form.submit()">{% for x in days %}<option value="{{x.isoformat()}}" {{'selected' if x.isoformat()==d}}>{{x.strftime('%a %d %b')}}{{' (today)' if loop.first}}</option>{% endfor %}</select></div>
+<div><label>Start time</label><select name="start" onchange="this.form.submit()">{% for s in starts %}<option value="{{s}}" {{'selected' if s==start}}>{{pretty_time(s)}}</option>{% endfor %}</select></div>
+<div><label>Stay for</label><select name="dur" onchange="this.form.submit()">{% for x in durs %}<option value="{{x}}" {{'selected' if x==dur}}>{{x}} min</option>{% endfor %}</select></div>
+<div><b style="font-size:1.4rem">{{n_free}}</b> <span class="mut">of {{seats|length}} seats free<br>{{pretty_time(start)}} &ndash; {{pretty_time(start+dur)}}</span></div></div></form>
+<div class="room" id="room">
+ <div class="zone win"></div><div class="zone winb"></div>
+ <div class="zone ent" style="left:3%;top:2%;width:9%;height:8%">ENTRY</div>
+ <div class="zone serve">ORDER &amp; SERVE</div>
+ <div class="zone cnt" style="top:20%;height:16%;background:{{COUNTERS.kf.c2}}">{{COUNTERS.kf.name}}</div>
+ <div class="zone cnt" style="top:38%;height:16%;background:{{COUNTERS.brew.c2}}">{{COUNTERS.brew.name}}</div>
+ <div class="zone cnt" style="top:56%;height:14%;background:{{COUNTERS.roll.c2}}">{{COUNTERS.roll.name}}</div>
+ <div class="zone ent" style="right:2%;bottom:5%;width:14%;height:12%">ENTRY / EXIT &amp; STAIRS</div>
+ <div class="zone pillar" style="left:21.5%;top:31%"></div><div class="zone pillar" style="left:21.5%;top:56%"></div>
+ {% for s in seats %}<button type="button" class="unit {{s.kind}} {{s.state}}" style="left:{{s.x}}%;top:{{s.y}}%;width:{{s.w}}%;height:{{s.h}}%" {{'disabled' if s.state=='booked'}}
+  data-id="{{s.id}}" data-kind="{{s.kind}}" data-seats="{{s.seats}}" title="{{s.id}} &middot; {{s.kind|capitalize}} &middot; {{s.seats}} seats &middot; {{'Your booking' if s.state=='mine' else ('Booked' if s.state=='booked' else 'Available')}}">
+  {% if s.kind=='table' %}<i class="chair t c1"></i><i class="chair t c2"></i><i class="chair t c3"></i><i class="chair b c1"></i><i class="chair b c2"></i><i class="chair b c3"></i>{% endif %}
+  <span class="tt">{{s.id}}<small>{{s.seats}} seats</small></span></button>{% endfor %}
+</div>
+<div class="legend"><span><i style="background:#c98e55"></i>Table (6 seats)</span><span><i style="background:#3f6a9b"></i>Sofa set (4 seats)</span><span><i style="background:#b7b1bd"></i>Booked for this time</span><span><i style="background:#e2406f"></i>Your booking</span></div>
+<dialog id="bk"><h2>Reserve <span id="bkid"></span></h2><p class="mut">Floor {{floor}} &middot; {{pretty_time(start)}} &ndash; {{pretty_time(start+dur)}}, {{d}}</p>
+<form method="post" action="/reserve"><input type="hidden" name="floor" value="{{floor}}"><input type="hidden" name="date" value="{{d}}"><input type="hidden" name="start" value="{{start}}"><input type="hidden" name="dur" value="{{dur}}"><input type="hidden" name="unit" id="bkunit">
+<label>Number of guests</label><select name="guests" id="bkg"></select><div class="row"><button class="btn mint">Confirm booking</button><button class="btn ghost" type="button" onclick="document.getElementById('bk').close()">Cancel</button></div></form></dialog>
+<script>document.querySelectorAll('.unit.free').forEach(b=>b.onclick=()=>{document.getElementById('bkid').textContent=b.dataset.id+' ('+b.dataset.kind+')';document.getElementById('bkunit').value=b.dataset.id;
+ document.getElementById('bkg').innerHTML=Array.from({length:+b.dataset.seats},(_,i)=>'<option>'+(i+1)+'</option>').join('');document.getElementById('bk').showModal()});</script>
+{% if plan %}<details class="card"><summary style="cursor:pointer;font-weight:700">Architect's floor plan</summary><img src="{{plan}}" alt="Canteen floor plan" style="width:100%;border-radius:12px;margin-top:10px"></details>{% endif %}
+<h2>My bookings</h2>{% for b in mine %}<div class="card row"><b>{{b.unit}}</b> Floor {{b.floor}} &middot; {{b.date}} &middot; {{pretty_time(b.start)}} &ndash; {{pretty_time(b.start+b.dur)}} &middot; {{b.guests}} guest(s)
+{% if past(b) %}<span class="tag Collected" style="margin-left:auto">Past</span>{% else %}<a href="/reserve/cancel/{{b.id}}" style="margin-left:auto" onclick="return confirm('Cancel this booking?')">Cancel</a>{% endif %}</div>{% else %}<p class="mut">No bookings yet.</p>{% endfor %}
+{% endblock %}

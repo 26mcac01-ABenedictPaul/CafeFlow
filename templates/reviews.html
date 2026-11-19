@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block explain %}<h2>Reviews</h2><ul><li>Every review is sent to the <b>counter</b> and the <b>admin</b> the moment you submit it.</li><li>The wall is sorted newest first with our own <b>merge sort</b>.</li></ul>{% endblock %}
+{% block body %}
+<style>.fade{opacity:0;transform:translateY(24px);transition:.6s}.fade.in{opacity:1;transform:none}
+.big5{font-size:2.6rem;font-weight:800;line-height:1}.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.todo{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}</style>
+<div class="pagehead"><h1>Reviews</h1><p class="mut">Floor {{floor}} &middot; <span class="big5" style="font-size:1.4rem">{{avg or '-'}} ★</span> from {{total}} review(s)</p></div>
+{% include "_revwall.html" %}
+{% if todo %}<h2 class="sec">Add a review <small>your orders waiting for a rating</small></h2>
+{% for o in todo %}<div class="card todo fade"><div><b>Order #{{o.id}}</b> &middot; {{o.cn}} <span class="mut">&middot; {{o.dish}} &middot; {{o.time}}</span></div><button class="btn sun" onclick="openReview({{o.id}},{{o.cn|tojson}},{{o.dish|tojson}},()=>location.reload())">⭐ Rate this order</button></div>{% endfor %}
+{% else %}<div class="card fade">🎉 You have reviewed all your orders. <a href="/home">Order something new</a> and rate it here.</div>{% endif %}
+<h2 class="sec">What everyone says</h2>
+<div class="chips"><a href="/reviews" class="{{'on' if not ck}}">All counters</a>{% for k,c in COUNTERS.items() %}<a href="/reviews?c={{k}}" class="{{'on' if k==ck}}">{{c.name}}</a>{% endfor %}</div>
+<div class="rg">{% for r in rs %}<div class="card fade" style="margin:0"><div class="row"><b style="color:#e6a100;letter-spacing:2px">{{'★'*r.rating}}<span style="color:#e3e5ef">{{'★'*(5-r.rating)}}</span></b><span class="mut" style="margin-left:auto">{{r.time}}</span></div>
+<p style="margin:8px 0">{{r.text or 'Loved it!'}}</p><div class="mut"><b>{{r.cname}}</b> &middot; {{r.cn}}</div>{% for t in r.tags %}<span class="tag" style="background:#e8f8ef;color:#0d7a4f">{{t}}</span> {% endfor %}</div>{% else %}<div class="card mut">No reviews for this counter yet.</div>{% endfor %}</div>
+{% if mine %}<h2 class="sec">Your reviews</h2>{% for r in mine %}<div class="card fade"><b style="color:#e6a100">{{'★'*r.rating}}</b> <b>{{r.cn}}</b> <span class="mut">order #{{r.oid}} &middot; {{r.time}}</span><p style="margin:6px 0 0">{{r.text or '(no comment)'}}</p></div>{% endfor %}{% endif %}
+{% include "_reviewdialog.html" %}
+<script>const io=new IntersectionObserver(es=>es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('in'),(i%6)*70);io.unobserve(e.target)}}),{threshold:.1});document.querySelectorAll('.fade').forEach(e=>io.observe(e));</script>
+{% endblock %}

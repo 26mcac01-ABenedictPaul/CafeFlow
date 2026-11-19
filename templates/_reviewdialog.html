@@ -1,0 +1,44 @@
+{# cute review pop-up. Open with  openReview(orderId, counterName, dish)  #}
+<style>
+#rvd{border:0;border-radius:30px;padding:0;width:min(430px,94vw);overflow:visible;background:transparent}#rvd::backdrop{background:rgba(27,31,59,.55);backdrop-filter:blur(3px)}
+#rvd .box{background:linear-gradient(180deg,#fff7dc,#fff 38%);border-radius:30px;padding:60px 26px 24px;text-align:center;position:relative;box-shadow:0 30px 70px rgba(27,31,59,.4);animation:rvpop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rvpop{from{transform:scale(.6) translateY(40px);opacity:0}}
+#rvd .mas{position:absolute;left:50%;top:-44px;translate:-50% 0;width:100px;height:100px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:3.6rem;box-shadow:0 10px 26px rgba(255,107,53,.35);border:5px solid #ffb703;transition:transform .2s}
+#rvd .mas.bump{animation:rvbump .4s}@keyframes rvbump{40%{transform:scale(1.25) rotate(-8deg)}}
+#rvd h2{margin:0 0 2px;font-size:1.45rem}#rvd .sub{color:var(--mut);margin:0 0 10px}
+#rvd .stars5{display:flex;justify-content:center;gap:4px;margin:8px 0 2px}#rvd .stars5 button{background:none;border:0;font-size:2.7rem;line-height:1;color:#dfe1ec;cursor:pointer;transition:transform .15s,color .15s;padding:0 2px}
+#rvd .stars5 button.on{color:#ffb703;filter:drop-shadow(0 3px 5px rgba(255,150,0,.45))}#rvd .stars5 button:hover{transform:scale(1.25) rotate(-6deg)}
+#rvd .word{font-weight:800;color:var(--brand);min-height:1.5em}
+#rvd .tg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}#rvd .tg button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font:inherit;font-weight:600;cursor:pointer}
+#rvd .tg button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#rvd textarea{width:100%;min-height:78px;border:1.5px solid var(--line);border-radius:16px;padding:12px;font:inherit;resize:none;box-sizing:border-box;background:#fff}
+#rvd .acts{display:flex;gap:10px;margin-top:12px}#rvd .acts .btn{flex:1}#rvd .cnt{font-size:.75rem;color:var(--mut);text-align:right}
+#rvd .done{display:none;padding:10px 0}#rvd .done .big{font-size:4rem;display:block;animation:rvbump .6s}
+.cfc{position:fixed;top:-20px;z-index:200;pointer-events:none;font-size:1.4rem;animation:cfall 2.6s ease-in forwards}@keyframes cfall{to{transform:translateY(110vh) rotate(540deg);opacity:.2}}
+</style>
+<dialog id="rvd"><div class="box"><div class="mas" id="rvm">😍</div>
+<div id="rvform"><h2 id="rvh">How was your order?</h2><p class="sub" id="rvs">Tap the stars, it takes 5 seconds</p>
+<div class="stars5" id="rvst">{% for n in range(1,6) %}<button type="button" data-n="{{n}}" aria-label="{{n}} star">★</button>{% endfor %}</div><div class="word" id="rvw"></div>
+<div class="tg">{% for t in ['Tasty','Fast','Hot','Value','Clean'] %}<button type="button" data-t="{{t}}">{{ {'Tasty':'😋','Fast':'⚡','Hot':'🔥','Value':'💰','Clean':'✨'}[t] }} {{t}}</button>{% endfor %}</div>
+<textarea id="rvt" maxlength="300" placeholder="Tell us what you loved (optional)"></textarea><div class="cnt"><span id="rvc">0</span>/300</div>
+<div class="acts"><button type="button" class="btn ghost" id="rvskip">Maybe later</button><button type="button" class="btn mint" id="rvsend">Send review 💌</button></div></div>
+<div class="done" id="rvdone"><span class="big">🎉</span><h2>Thank you!</h2><p class="mut" id="rvdm">Your review was sent to the counter and the admin.</p><button type="button" class="btn" id="rvclose">Close</button></div></div></dialog>
+<script>
+(function(){
+ const D=document.getElementById('rvd'),M=document.getElementById('rvm'),W={1:['😞','Oh no, sorry about that'],2:['😕','Could be better'],3:['🙂','It was okay'],4:['😊','Really good!'],5:['😍','Absolutely loved it!']};
+ let oid=0,rating=5,tags=new Set(),onDone=null;const $=id=>document.getElementById(id);
+ function paint(n){rating=n;document.querySelectorAll('#rvst button').forEach(b=>b.classList.toggle('on',+b.dataset.n<=n));M.textContent=W[n][0];$('rvw').textContent=W[n][1];M.classList.remove('bump');void M.offsetWidth;M.classList.add('bump')}
+ document.querySelectorAll('#rvst button').forEach(b=>b.onclick=()=>paint(+b.dataset.n));
+ document.querySelectorAll('#rvd .tg button').forEach(b=>b.onclick=()=>{const t=b.dataset.t;tags.has(t)?tags.delete(t):tags.add(t);b.classList.toggle('on')});
+ $('rvt').oninput=e=>$('rvc').textContent=e.target.value.length;
+ function confetti(){const E=['🎉','⭐','💛','🍰','✨','🍕','🎊'];for(let i=0;i<34;i++){const c=document.createElement('span');c.className='cfc';c.textContent=E[i%E.length];c.style.left=Math.random()*100+'vw';c.style.animationDelay=Math.random()*.8+'s';c.style.fontSize=(1+Math.random()*1.2)+'rem';document.body.appendChild(c);setTimeout(()=>c.remove(),3800)}}
+ window.openReview=function(id,counter,dish,cb){oid=id;onDone=cb||null;tags=new Set();$('rvt').value='';$('rvc').textContent=0;document.querySelectorAll('#rvd .tg button').forEach(b=>b.classList.remove('on'));
+  $('rvform').style.display='block';$('rvdone').style.display='none';$('rvh').textContent='Thanks for ordering! 💛';$('rvs').textContent='How was '+(dish||'your order')+' from '+counter+'?';paint(5);if(!D.open)D.showModal()};
+ function fin(){if(D.open)D.close();if(onDone)onDone()}
+ $('rvskip').onclick=fin;$('rvclose').onclick=()=>{fin();location.reload()};
+ $('rvsend').onclick=async()=>{const b=$('rvsend');b.disabled=true;b.textContent='Sending...';const f=new FormData();f.append('rating',rating);f.append('text',$('rvt').value);tags.forEach(t=>f.append('tags',t));
+  try{const r=await fetch('/order/'+oid+'/review',{method:'POST',body:f,headers:{'X-Requested-With':'fetch'}});const j=await r.json();
+   if(j.ok){$('rvform').style.display='none';$('rvdone').style.display='block';M.textContent='🥳';confetti();if(window.CF_beep)CF_beep()}else{alert(j.msg||'Could not send');fin()}}
+  catch(e){alert('Could not send, please try again.')}b.disabled=false;b.textContent='Send review 💌'};
+})();
+</script>
