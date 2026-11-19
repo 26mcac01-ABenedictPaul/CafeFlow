@@ -9,10 +9,13 @@
 ![DSA](https://img.shields.io/badge/Core%20Logic-Custom%20DSA-FF4F7B?style=for-the-badge)
 ![Phases](https://img.shields.io/badge/Course%20Phases-4%20of%204-7B4DFF?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-F59E0B?style=for-the-badge)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20CafeFlow-22C55E?style=for-the-badge&logo=render&logoColor=white)](https://cafeflow-sp29.onrender.com/)
 
 ### Order smarter. Cook faster. Wait less.
 
-[Features](#-features) &nbsp;•&nbsp; [How it works](#-how-an-order-flows) &nbsp;•&nbsp; [DSA map](#-data-structures--algorithms) &nbsp;•&nbsp; [Quick start](#-quick-start) &nbsp;•&nbsp; [Security](#-security--privacy) &nbsp;•&nbsp; [License](#-license)
+## <a href="https://cafeflow-sp29.onrender.com/"><img src="assets/icons/rocket.png" width="30" align="center"> Try it live: cafeflow-sp29.onrender.com</a>
+
+[Live demo](https://cafeflow-sp29.onrender.com/) &nbsp;•&nbsp; [Features](#-features) &nbsp;•&nbsp; [How it works](#-how-an-order-flows) &nbsp;•&nbsp; [DSA map](#-data-structures--algorithms) &nbsp;•&nbsp; [Quick start](#-quick-start) &nbsp;•&nbsp; [Security](#-security--privacy) &nbsp;•&nbsp; [License](#-license)
 
 </div>
 
@@ -29,6 +32,32 @@ It is also a **data structures and algorithms project**. Every core feature runs
 <td align="center" width="33%"><img src="assets/icons/mobile_phone.png" width="64"><br><b>Students</b><br>Order, pay, book tables, plan parties, track food live</td>
 <td align="center" width="33%"><img src="assets/icons/laptop.png" width="64"><br><b>Counters</b><br>Accept orders, set cooking time, manage menu, see sales charts</td>
 <td align="center" width="33%"><img src="assets/icons/bar_chart.png" width="64"><br><b>Admin</b><br>Customers, payments, reviews, analytics and controls</td>
+</tr>
+</table>
+
+---
+
+## <img src="assets/icons/mobile_phone.png" width="32" align="center"> Try it live
+
+<table>
+<tr>
+<td width="60%" valign="top">
+
+**<a href="https://cafeflow-sp29.onrender.com/">cafeflow-sp29.onrender.com</a>**
+
+1. Open the link and click **Register** to create a student account.
+2. Browse the two floors, add dishes to your cart and pay.
+3. Try **Book a table**, **Pre-order**, **Plan a party** and the chat assistant.
+
+Counter and admin logins are private. Ask the author for access.
+
+</td>
+<td width="40%" valign="top">
+
+<img src="assets/icons/hot_beverage.png" width="48"> &nbsp; **Heads up**<br>
+The demo runs on a free server. If nobody has used it for a while it goes to sleep, so the first page can take up to a minute to load. Data is reset whenever the demo is redeployed.
+
+</td>
 </tr>
 </table>
 
@@ -173,8 +202,8 @@ cd CafeFlow
 pip install -r requirements.txt
 
 # 3. Set your secrets (never commit these)
-export SECRET_KEY="choose-a-long-random-string"
-export ADMIN_PASS="choose-a-strong-password"
+#    copy local_config.example.json to local_config.json and fill in your own passwords
+cp local_config.example.json local_config.json
 
 # 4. Run
 python app.py          # then open http://127.0.0.1:5000
@@ -183,7 +212,7 @@ python app.py          # then open http://127.0.0.1:5000
 python tests.py
 ```
 
-Students register on the login page. Counter and admin accounts are set in your own local configuration, which is not part of this repository.
+Students register on the login page. Admin and counter passwords come from `local_config.json` (ignored by Git) or from environment variables, and `data.json` is created from `data.seed.json` the first time the app runs.
 
 ### Settings
 
@@ -205,9 +234,11 @@ Students register on the login page. Counter and admin accounts are set in your 
 |---|---|
 | Build command | `pip install -r requirements.txt` |
 | Start command | `gunicorn app:app --workers 1 --threads 4 --timeout 120` |
-| Environment | `SECRET_KEY`, `ADMIN_PASS`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` |
+| Environment | `SECRET_KEY`, `ADMIN_PASS`, `PW_CAMPUSFEAST`, `PW_ZAMORIN1`, `PW_SLURRPP`, `PW_ANNAPRADA`, `PW_ZAMORIN2`, `PW_DELHIBITE`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` |
 
-Keep **one worker**: data lives in memory and is saved to `data.json`. On Render's free plan the file system resets on every redeploy.
+Live demo: **https://cafeflow-sp29.onrender.com/**
+
+Keep **one worker**: data lives in memory and is saved to `data.json`. On Render's free plan the file system resets on every redeploy, and the app starts again from `data.seed.json`.
 
 ---
 
@@ -215,7 +246,7 @@ Keep **one worker**: data lives in memory and is saved to `data.json`. On Render
 
 | | |
 |---|---|
-| 🔑 **No secrets in the code** | Keys, admin and counter passwords come from environment variables, never from the repository. |
+| 🔑 **No secrets in the code** | Keys, admin and counter passwords come from environment variables or a local file that Git ignores, never from the repository. |
 | 🔒 **Encrypted in transit** | Deploy behind HTTPS (Render provides it) so logins and orders cannot be read on the network. |
 | 🧂 **Hashed passwords** | Passwords are stored as one-way hashes, never as plain text. |
 | 🧱 **Role separation** | Student, counter and admin pages are separate. A counter sees only its own orders. |
@@ -234,6 +265,7 @@ CafeFlow/
 ├── algos.py        Greedy, dynamic programming, backtracking
 ├── mining.py       Apriori basket analysis
 ├── chatbot.py      Rule-based assistant (BST, merge sort, DP, greedy)
+├── data.seed.json  Clean starting data (menu only)
 ├── get_images.py   Downloads food photos (see credits)
 ├── tests.py        Automated tests for every phase and main pages
 ├── templates/      Jinja pages (student, counter, admin)
@@ -248,8 +280,7 @@ CafeFlow/
 ## <img src="assets/icons/trophy.png" width="32" align="center"> Roadmap
 
 - [ ] Real UPI payment gateway
-- [ ] Database (PostgreSQL) instead of `data.json`
-- [ ] Login with hashed passwords and sessions for every role
+- [ ] Optional database (PostgreSQL) for many users at once
 - [ ] Star-rating alerts to counters when a dish's rating drops
 - [ ] Extra floors and canteen branches with a background worker for pre-orders
 
